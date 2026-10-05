@@ -971,11 +971,11 @@ function horarioSenhorEduardo() {
 
   const hour = Number(parts.find((p) => p.type === "hour")?.value || 0);
 
-  if (hour >= 8 && hour < 18) {
-    return "O senhor Eduardo está dentro do horário de atendimento (08:00 às 18:00).";
+  if (hour >= 8 && hour < 19) {
+    return "O senhor Eduardo encontra-se dentro do horário habitual de atendimento.";
   }
 
-  return "O senhor Eduardo já encerrou o expediente por hoje. Ele estará novamente disponível amanhã, a partir das 8 horas.";
+  return "O senhor Eduardo encontra-se indisponível no momento. Assim que estiver disponível novamente, poderá responder com a maior brevidade possível.";
 }
 
 // ============================================================
