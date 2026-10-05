@@ -11,12 +11,10 @@
   --navy:#061a35;
   --navy2:#0c2e59;
   --muted:#65758b;
-  --border:#d9e3ee;
+  --border:#d9e3ee
 }
 
-*{
-  box-sizing:border-box;
-}
+*{box-sizing:border-box}
 
 body{
   margin:0;
@@ -26,7 +24,7 @@ body{
   height:100vh;
   display:flex;
   align-items:center;
-  justify-content:center;
+  justify-content:center
 }
 
 .app{
@@ -36,7 +34,7 @@ body{
   box-shadow:0 20px 70px rgba(7,26,53,.18);
   display:flex;
   flex-direction:column;
-  overflow:hidden;
+  overflow:hidden
 }
 
 .head{
@@ -45,7 +43,7 @@ body{
   padding:12px 18px;
   display:flex;
   align-items:center;
-  gap:12px;
+  gap:12px
 }
 
 .avatar{
@@ -55,7 +53,7 @@ body{
   overflow:hidden;
   flex:none;
   border:2px solid rgba(255,255,255,.85);
-  background:#fff;
+  background:#fff
 }
 
 .avatar img,
@@ -63,20 +61,19 @@ body{
   width:100%;
   height:100%;
   object-fit:cover;
-  object-position:center 30%;
-  display:block;
+  object-position:center 30%
 }
 
 .head strong{
   display:block;
-  font-size:16px;
+  font-size:16px
 }
 
 .online{
   display:block;
   font-size:12px;
   color:#bcecff;
-  margin-top:2px;
+  margin-top:2px
 }
 
 .context{
@@ -84,14 +81,14 @@ body{
   font-size:11px;
   color:#d7e9fb;
   text-align:right;
-  max-width:330px;
+  max-width:330px
 }
 
 .chat{
   flex:1;
   overflow:auto;
   padding:18px;
-  background:#f4f7fa;
+  background:#f4f7fa
 }
 
 .row{
@@ -99,12 +96,12 @@ body{
   gap:9px;
   align-items:flex-end;
   margin:12px 0;
-  max-width:94%;
+  max-width:94%
 }
 
 .row.user{
   margin-left:auto;
-  flex-direction:row-reverse;
+  flex-direction:row-reverse
 }
 
 .mini-avatar{
@@ -119,23 +116,23 @@ body{
   font-size:12px;
   font-weight:800;
   color:var(--navy);
-  border:1px solid #cbd9e8;
+  border:1px solid #cbd9e8
 }
 
 .bubble-wrap{
-  min-width:0;
+  min-width:0
 }
 
 .speaker{
   font-size:11px;
   font-weight:800;
   color:#617287;
-  margin:0 0 4px 6px;
+  margin:0 0 4px 6px
 }
 
 .row.user .speaker{
   text-align:right;
-  margin-right:6px;
+  margin-right:6px
 }
 
 .msg{
@@ -145,39 +142,25 @@ body{
   line-height:1.55;
   font-size:14px;
   box-shadow:0 2px 8px rgba(7,26,53,.045);
-  overflow-wrap:anywhere;
+  overflow-wrap:anywhere
 }
 
 .bot .msg{
   background:#fff;
   border:1px solid var(--border);
-  border-top-left-radius:5px;
+  border-top-left-radius:5px
 }
 
 .user .msg{
   background:var(--navy);
   color:#fff;
-  border-top-right-radius:5px;
+  border-top-right-radius:5px
 }
 
 .msg a{
   color:#075bb4;
   text-decoration:underline;
-  font-weight:800;
-}
-
-.portal-link{
-  display:inline-flex;
-  align-items:center;
-  gap:7px;
-  margin-top:10px;
-  padding:9px 12px;
-  border-radius:11px;
-  background:#eaf4ff;
-  color:#075bb4!important;
-  text-decoration:none!important;
-  border:1px solid #c9def3;
-  font-weight:900!important;
+  font-weight:800
 }
 
 .quick{
@@ -187,7 +170,7 @@ body{
   display:flex;
   gap:8px;
   overflow:auto;
-  min-height:58px;
+  min-height:58px
 }
 
 .quick button{
@@ -198,7 +181,7 @@ body{
   border-radius:20px;
   padding:8px 12px;
   cursor:pointer;
-  font-weight:800;
+  font-weight:800
 }
 
 .composer{
@@ -206,7 +189,7 @@ body{
   gap:9px;
   padding:11px;
   background:#fff;
-  border-top:1px solid var(--border);
+  border-top:1px solid var(--border)
 }
 
 .composer input{
@@ -215,7 +198,7 @@ body{
   border-radius:25px;
   padding:13px 16px;
   outline:0;
-  font-size:14px;
+  font-size:14px
 }
 
 .composer button{
@@ -226,7 +209,7 @@ body{
   background:var(--navy);
   color:#fff;
   font-size:18px;
-  cursor:pointer;
+  cursor:pointer
 }
 
 .typing{
@@ -235,7 +218,7 @@ body{
   padding:12px 15px;
   background:#fff;
   border:1px solid var(--border);
-  border-radius:16px;
+  border-radius:16px
 }
 
 .typing i{
@@ -243,21 +226,16 @@ body{
   height:6px;
   background:#9aa8b8;
   border-radius:50%;
-  animation:b 1s infinite;
+  animation:b 1s infinite
 }
 
-.typing i:nth-child(2){
-  animation-delay:.15s;
-}
-
-.typing i:nth-child(3){
-  animation-delay:.3s;
-}
+.typing i:nth-child(2){animation-delay:.15s}
+.typing i:nth-child(3){animation-delay:.3s}
 
 @keyframes b{
   50%{
     transform:translateY(-3px);
-    opacity:.4;
+    opacity:.4
   }
 }
 
@@ -266,39 +244,17 @@ body{
   color:var(--muted);
   text-align:center;
   padding:7px;
-  background:#f8fafc;
+  background:#f8fafc
 }
 
 @media(max-width:650px){
-
-  body{
-    display:block;
-  }
-
-  .app{
-    height:100vh;
-  }
-
-  .head{
-    padding:11px 13px;
-  }
-
-  .context{
-    display:none;
-  }
-
-  .chat{
-    padding:12px 9px;
-  }
-
-  .row{
-    max-width:97%;
-  }
-
-  .msg{
-    font-size:14px;
-  }
-
+  body{display:block}
+  .app{height:100vh}
+  .head{padding:11px 13px}
+  .context{display:none}
+  .chat{padding:12px 9px}
+  .row{max-width:97%}
+  .msg{font-size:14px}
 }
 </style>
 </head>
@@ -310,12 +266,7 @@ body{
 <header class="head">
 
   <div class="avatar">
-    <img
-      id="avatar"
-      src="/avatar.jpg"
-      alt="Eduardo Gabriel"
-      onerror="this.style.display='none';"
-    >
+    <img id="avatar" alt="Eduardo Gabriel">
   </div>
 
   <div>
@@ -329,30 +280,19 @@ body{
 
 </header>
 
-
 <main id="chat" class="chat"></main>
-
 
 <div id="quick" class="quick"></div>
 
-
 <div class="composer">
-
   <input
     id="input"
     autocomplete="off"
     placeholder="Escreva a sua mensagem..."
   >
 
-  <button
-    id="send"
-    aria-label="Enviar"
-  >
-    ➤
-  </button>
-
+  <button id="send" aria-label="Enviar">➤</button>
 </div>
-
 
 <div class="notice">
   As informações sobre os serviços são orientadas pelos índices e portais do Eduardo Gabriel.
@@ -361,109 +301,77 @@ body{
 
 </div>
 
-
 <script>
 
-/* =====================================================
-   FOTO DO EDUARDO
-   Caminhos aceites:
-   /avatar.jpg
-   /assets/avatar.jpg
-===================================================== */
+/* =========================================================
+   FOTO DO SENHOR EDUARDO
+   ========================================================= */
 
-const PHOTO_CANDIDATES = [
-  "/avatar.jpg",
-  "./avatar.jpg",
-  "/assets/avatar.jpg",
-  "./assets/avatar.jpg"
-];
-
-let photoIndex = 0;
-
-function setPhoto(img){
-  if(!img) return;
-
-  img.src = PHOTO_CANDIDATES[photoIndex];
-
-  img.onerror = function(){
-
-    photoIndex++;
-
-    if(photoIndex < PHOTO_CANDIDATES.length){
-
-      this.src =
-        PHOTO_CANDIDATES[photoIndex];
-
-    }else{
-
-      this.style.display =
-        "none";
-
-    }
-
-  };
-}
+const PHOTO = "./avatar.jpg";
 
 
-/* =====================================================
-   DADOS RECEBIDOS DO LINK
-===================================================== */
+/* =========================================================
+   DADOS DO CLIENTE
+   ========================================================= */
 
-const q =
-  new URLSearchParams(location.search);
-
+const q = new URLSearchParams(location.search);
 
 const ctx = {
 
-  nome:
-    q.get("nome") || "",
+  nome:q.get("nome") || "",
 
-  telefone:
-    q.get("telefone") || "",
+  telefone:q.get("telefone") || "",
 
-  email:
-    q.get("email") || "",
+  email:q.get("email") || "",
 
-  servico:
-    q.get("servico") || "",
+  servico:q.get("servico") || "",
 
-  pedido:
-    q.get("pedido") || "",
+  pedido:q.get("pedido") || "",
 
-  tratamento:
-    q.get("tratamento") || ""
+  tratamento:q.get("tratamento") || "",
+
+  sexo:q.get("sexo") || ""
 
 };
 
 
-/* =====================================================
-   TRATAMENTO DO CLIENTE
-===================================================== */
+/* =========================================================
+   NORMALIZAR NOME
+   ========================================================= */
 
-function nomeSemTitulo(nome){
+function normalizarNome(nome){
 
   return String(nome || "")
-    .replace(
-      /^(sr\.?|senhor|sra\.?|senhora|dona|d\.?\s*a\.?)\s+/i,
-      ""
-    )
-    .trim();
+    .trim()
+    .replace(/\s+/g," ");
 
 }
 
 
+/* =========================================================
+   DEFINIR SENHOR / SENHORA
+   ========================================================= */
+
 function detectarTratamento(nome){
 
-  const n =
-    nomeSemTitulo(nome);
+  /*
+   * Se o formulário enviar diretamente:
+   * tratamento=Senhor
+   * ou
+   * tratamento=Senhora
+   */
 
-  if(!n)
-    return "";
+  const t = String(ctx.tratamento || "")
+    .trim()
+    .toLowerCase();
 
 
   if(
-    /^(sra\.?|senhora|dona|d\.?\s*a\.?)$/i
-      .test(ctx.tratamento)
+    t.includes("senhora") ||
+    t === "sra" ||
+    t === "f" ||
+    t === "feminino" ||
+    t === "female"
   ){
 
     return "Senhora";
@@ -472,8 +380,11 @@ function detectarTratamento(nome){
 
 
   if(
-    /^(sr\.?|senhor)$/i
-      .test(ctx.tratamento)
+    t.includes("senhor") ||
+    t === "sr" ||
+    t === "m" ||
+    t === "masculino" ||
+    t === "male"
   ){
 
     return "Senhor";
@@ -482,95 +393,89 @@ function detectarTratamento(nome){
 
 
   /*
-     Nomes femininos conhecidos.
-     Para os restantes usamos "Senhor"
-     como padrão, podendo o backend
-     corrigir caso tenha essa informação.
-  */
+   * Sexo enviado pelo formulário
+   */
 
-  const femininos =
-    new Set([
+  const sexo = String(ctx.sexo || "")
+    .trim()
+    .toLowerCase();
 
-      "ana",
-      "maria",
-      "joana",
-      "jana",
-      "jéssica",
-      "jessica",
-      "juliana",
-      "julia",
-      "patricia",
-      "patrícia",
-      "paula",
-      "carla",
-      "catarina",
-      "cátia",
-      "catia",
-      "sandra",
-      "sara",
-      "sofia",
-      "sónia",
-      "sonia",
-      "helena",
-      "rosa",
-      "rosalia",
-      "rosália",
-      "nanda",
-      "nádia",
-      "nadia",
-      "florinda",
-      "teresa",
-      "marta",
-      "lúcia",
-      "lucia",
-      "beatriz",
-      "bruna",
-      "cristina",
-      "claudia",
-      "cláudia",
-      "diana",
-      "elisabete",
-      "emilia",
-      "emília",
-      "fátima",
-      "fatima",
-      "fernanda",
-      "gabriela",
-      "isabel",
-      "isabela",
-      "irene",
-      "ivone",
-      "laura",
-      "leonor",
-      "liliana",
-      "luisa",
-      "luísa",
-      "manuela",
-      "mónica",
-      "monica",
-      "natália",
-      "natalia",
-      "noémia",
-      "noemia",
-      "olga",
-      "raquel",
-      "regina",
-      "silvia",
-      "sílvia",
-      "vania",
-      "vânia",
-      "vera",
-      "virginia",
-      "virgínia",
-      "yolanda"
 
-    ]);
+  if(
+    sexo === "f" ||
+    sexo === "feminino" ||
+    sexo === "female"
+  ){
 
+    return "Senhora";
+
+  }
+
+
+  if(
+    sexo === "m" ||
+    sexo === "masculino" ||
+    sexo === "male"
+  ){
+
+    return "Senhor";
+
+  }
+
+
+  /*
+   * Fallback pelo primeiro nome.
+   */
 
   const primeiro =
-    n
-      .split(/\s+/)[0]
+    normalizarNome(nome)
+      .split(" ")[0]
       .toLowerCase();
+
+
+  const femininos = new Set([
+
+    "ana",
+    "maria",
+    "joana",
+    "paula",
+    "rosa",
+    "rosalina",
+    "nanda",
+    "beatriz",
+    "carla",
+    "catarina",
+    "cristina",
+    "diana",
+    "elisa",
+    "elisabete",
+    "emilia",
+    "eva",
+    "fatima",
+    "florinda",
+    "gabriela",
+    "helena",
+    "isabel",
+    "jacinta",
+    "jessica",
+    "juliana",
+    "laura",
+    "lucia",
+    "luisa",
+    "marta",
+    "mariana",
+    "monica",
+    "patricia",
+    "raquel",
+    "sandra",
+    "sara",
+    "sofia",
+    "susana",
+    "teresa",
+    "vera",
+    "vitoria"
+
+  ]);
 
 
   return femininos.has(primeiro)
@@ -580,138 +485,89 @@ function detectarTratamento(nome){
 }
 
 
-if(ctx.nome){
+function nomeCliente(){
 
-  ctx.nome =
-    nomeSemTitulo(ctx.nome);
-
-  ctx.tratamento =
-    detectarTratamento(ctx.nome);
-
-  ctx.titulo =
-    `${ctx.tratamento} ${ctx.nome}`;
-
-}else{
-
-  ctx.titulo =
-    "";
+  return normalizarNome(ctx.nome);
 
 }
 
 
-/* =====================================================
-   SESSÃO DA CONVERSA
-===================================================== */
+function tratamentoCliente(){
+
+  const nome = nomeCliente();
+
+  return `${detectarTratamento(nome)}${nome ? " " + nome : ""}`;
+
+}
+
+
+/* =========================================================
+   SESSÃO
+   ========================================================= */
 
 const sessionId =
-
   q.get("session") ||
-
-  (
-    window.crypto &&
-    crypto.randomUUID
-
-      ? crypto.randomUUID()
-
-      : "sessao-" + Date.now()
-  );
-
+  crypto.randomUUID();
 
 let history = [];
 
 let greeted = false;
 
 
-/* =====================================================
-   ELEMENTOS
-===================================================== */
+/* =========================================================
+   FOTO E CONTEXTO
+   ========================================================= */
 
-const avatarElement =
-  document.getElementById("avatar");
+document.getElementById("avatar").src = PHOTO;
 
-
-setPhoto(
-  avatarElement
-);
-
-
-document
-  .getElementById("context")
-  .textContent =
-
+document.getElementById("context").textContent =
   ctx.servico
-
     ? `Atendimento: ${ctx.servico}`
-
     : "Conversa geral";
 
 
-/* =====================================================
-   SEGURANÇA DE TEXTO
-===================================================== */
+/* =========================================================
+   ESCAPAR HTML
+   ========================================================= */
 
 function esc(s){
 
   return String(s ?? "")
-
     .replace(
       /[&<>"]/g,
-      m => {
-
-        if(m === "&")
-          return "&amp;";
-
-        if(m === "<")
-          return "&lt;";
-
-        if(m === ">")
-          return "&gt;";
-
-        return "&quot;";
-
-      }
+      m =>
+        m === "&"
+          ? "&amp;"
+          : m === "<"
+          ? "&lt;"
+          : m === ">"
+          ? "&gt;"
+          : "&quot;"
     );
 
 }
 
-
-/* =====================================================
-   FORMATAÇÃO DA MENSAGEM
-===================================================== */
 
 function fmt(s){
 
   return esc(s)
-
-    .replace(
-      /\*\*(.*?)\*\*/g,
-      "<strong>$1</strong>"
-    )
-
-    .replace(
-      /\n/g,
-      "<br>"
-    );
+    .replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>")
+    .replace(/\n/g,"<br>");
 
 }
 
 
-/* =====================================================
+/* =========================================================
    ADICIONAR MENSAGEM
-===================================================== */
+   ========================================================= */
 
-function add(
-  text,
-  type = "bot"
-){
+function add(text,type="bot"){
 
   const chat =
     document.getElementById("chat");
 
-
   const row =
     document.createElement("div");
-
 
   row.className =
     "row " + type;
@@ -720,48 +576,20 @@ function add(
   const av =
     document.createElement("div");
 
-
   av.className =
     "mini-avatar";
 
 
-  if(type === "bot"){
+  av.innerHTML =
+    type === "bot"
 
-    const img =
-      document.createElement("img");
+      ? `<img src="${PHOTO}" alt="Eduardo Gabriel">`
 
-
-    setPhoto(img);
-
-
-    img.alt =
-      "Eduardo Gabriel";
-
-
-    img.onerror =
-      function(){
-
-        this.style.display =
-          "none";
-
-      };
-
-
-    av.appendChild(img);
-
-  }
-
-  else{
-
-    av.innerHTML =
-      "<span>C</span>";
-
-  }
+      : "<span>C</span>";
 
 
   const wrap =
     document.createElement("div");
-
 
   wrap.className =
     "bubble-wrap";
@@ -770,27 +598,23 @@ function add(
   const speaker =
     document.createElement("div");
 
-
   speaker.className =
     "speaker";
 
 
   speaker.textContent =
-
     type === "bot"
 
       ? "Assistente Virtual — Eduardo Gabriel"
 
-      : (ctx.titulo || "Cliente");
+      : tratamentoCliente();
 
 
   const msg =
     document.createElement("div");
 
-
   msg.className =
     "msg";
-
 
   msg.innerHTML =
     fmt(text);
@@ -810,45 +634,29 @@ function add(
 
   chat.appendChild(row);
 
-
   chat.scrollTop =
     chat.scrollHeight;
 
 
   history.push({
-
-    role:
-      type === "bot"
-        ? "assistant"
-        : "user",
-
-    content:
-      text,
-
-    text:
-      text,
-
-    type:
-      type
-
+    text,
+    type
   });
 
 }
 
 
-/* =====================================================
-   ANIMAÇÃO "A RESPONDER"
-===================================================== */
+/* =========================================================
+   DIGITAÇÃO
+   ========================================================= */
 
 function typing(){
 
   const chat =
     document.getElementById("chat");
 
-
   const row =
     document.createElement("div");
-
 
   row.className =
     "row bot";
@@ -857,37 +665,15 @@ function typing(){
   const av =
     document.createElement("div");
 
-
   av.className =
     "mini-avatar";
 
-
-  const img =
-    document.createElement("img");
-
-
-  setPhoto(img);
-
-
-  img.alt =
-    "Eduardo Gabriel";
-
-
-  img.onerror =
-    function(){
-
-      this.style.display =
-        "none";
-
-    };
-
-
-  av.appendChild(img);
+  av.innerHTML =
+    `<img src="${PHOTO}" alt="Eduardo Gabriel">`;
 
 
   const wrap =
     document.createElement("div");
-
 
   wrap.className =
     "bubble-wrap";
@@ -896,10 +682,8 @@ function typing(){
   const speaker =
     document.createElement("div");
 
-
   speaker.className =
     "speaker";
-
 
   speaker.textContent =
     "Assistente Virtual — Eduardo Gabriel";
@@ -908,10 +692,8 @@ function typing(){
   const t =
     document.createElement("div");
 
-
   t.className =
     "typing";
-
 
   t.innerHTML =
     "<i></i><i></i><i></i>";
@@ -922,15 +704,12 @@ function typing(){
     t
   );
 
-
   row.append(
     av,
     wrap
   );
 
-
   chat.appendChild(row);
-
 
   chat.scrollTop =
     chat.scrollHeight;
@@ -941,46 +720,39 @@ function typing(){
 }
 
 
-/* =====================================================
-   FALAR
-===================================================== */
-
-function say(
-  text,
-  delay = 220
-){
+function say(text,delay=220){
 
   const t =
     typing();
 
 
-  setTimeout(() => {
+  setTimeout(
+    () => {
 
-    t.remove();
+      t.remove();
 
+      add(
+        text,
+        "bot"
+      );
 
-    add(
-      text,
-      "bot"
-    );
-
-  }, delay);
+    },
+    delay
+  );
 
 }
 
 
-/* =====================================================
+/* =========================================================
    BOTÕES RÁPIDOS
-===================================================== */
+   ========================================================= */
 
 function quick(items){
 
   const el =
     document.getElementById("quick");
 
-
-  el.innerHTML =
-    "";
+  el.innerHTML = "";
 
 
   items.forEach(x => {
@@ -988,17 +760,13 @@ function quick(items){
     const b =
       document.createElement("button");
 
-
     b.textContent =
       x;
 
 
     b.onclick = () => {
 
-      document.getElementById(
-        "input"
-      ).value = x;
-
+      document.getElementById("input").value = x;
 
       send();
 
@@ -1012,9 +780,9 @@ function quick(items){
 }
 
 
-/* =====================================================
-   MENSAGEM INICIAL
-===================================================== */
+/* =========================================================
+   APRESENTAÇÃO INICIAL
+   ========================================================= */
 
 function showIntro(){
 
@@ -1025,32 +793,18 @@ function showIntro(){
   greeted = true;
 
 
-  let intro;
+  const saudacao = ctx.nome
+
+    ? `Olá, **${detectarTratamento(nomeCliente())} ${nomeCliente()}**! 👋`
+
+    : "Olá! 👋";
 
 
-  if(ctx.nome){
+  let intro = `${saudacao}
 
-    intro =
-
-`Olá, **${ctx.titulo}**! 👋
-
-Sou o **Assistente Virtual do Eduardo Ngongoyove Gabriel**. Neste momento o senhor Eduardo pode não estar disponível, mas estou aqui para prestar as primeiras informações e continuar o atendimento consigo.
+Sou o **Assistente Virtual do senhor Eduardo Ngongoyove Gabriel**. Neste momento ele pode não estar disponível, mas estou aqui para prestar as primeiras informações e continuar o atendimento consigo.
 
 Pode conversar comigo normalmente. Não precisa repetir os dados que já informou.`;
-
-  }
-
-  else{
-
-    intro =
-
-`Olá! 👋
-
-Sou o **Assistente Virtual do Eduardo Ngongoyove Gabriel**.
-
-Antes de continuarmos, por favor, diga-me o seu nome. Assim poderei tratá-lo corretamente como **Senhor** ou **Senhora**.`;
-
-  }
 
 
   say(
@@ -1061,33 +815,24 @@ Antes de continuarmos, por favor, diga-me o seu nome. Assim poderei tratá-lo co
 
   setTimeout(() => {
 
-    if(ctx.nome && ctx.pedido){
+    if(ctx.pedido){
 
       say(
-
-`Recebi o pedido inicial de **${ctx.titulo}**: **${ctx.pedido}**.
+        `Recebi o seu pedido inicial: **${ctx.pedido}**.
 
 Pode continuar a partir daqui.`,
-
         220
-
       );
 
     }
 
-    else if(
-      ctx.nome &&
-      ctx.servico
-    ){
+    else if(ctx.servico){
 
       say(
-
-`Entendi, **${ctx.titulo}**. O seu atendimento inicial está relacionado com **${ctx.servico}**.
+        `Entendi. O seu atendimento inicial está relacionado com **${ctx.servico}**.
 
 Pode perguntar diretamente o que pretende saber sobre esse assunto.`,
-
         220
-
       );
 
     }
@@ -1095,127 +840,50 @@ Pode perguntar diretamente o que pretende saber sobre esse assunto.`,
   },600);
 
 
-  if(ctx.nome){
+  quick([
 
-    quick([
+    "🏥 Consultas na Namíbia",
 
-      "🏥 Consultas na Namíbia",
+    "💰 Consultar preços",
 
-      "💰 Consultar preços",
+    "💻 Websites",
 
-      "💻 Websites",
+    "📱 Redes sociais",
 
-      "📱 Redes sociais",
+    "🎵 Música",
 
-      "🎵 Música",
+    "👤 Falar com Eduardo"
 
-      "👤 Falar com Eduardo"
-
-    ]);
-
-  }
+  ]);
 
 }
 
 
-/* =====================================================
-   ENDEREÇO DO BACKEND
-===================================================== */
+/* =========================================================
+   API
+   ========================================================= */
 
 const queryApi =
-
-  new URLSearchParams(
-    location.search
-  ).get("api") || "";
+  new URLSearchParams(location.search)
+    .get("api") || "";
 
 
 const API_BASE =
-
   (
     queryApi ||
-
     window.EDUARDO_API_URL ||
-
     ""
-
-  ).replace(
-    /\/$/,
-    ""
-  );
+  ).replace(/\/$/,"");
 
 
 const IS_LOCAL_FILE =
-
   location.protocol === "file:" ||
-
   location.protocol === "content:";
 
 
-/* =====================================================
-   CAPTURAR NOME DIGITADO PELO CLIENTE
-===================================================== */
-
-function tentarCapturarNome(text){
-
-  if(ctx.nome)
-    return false;
-
-
-  const t =
-    String(text || "").trim();
-
-
-  const m =
-    t.match(
-
-      /^(?:sou|chamo-me|me chamo|o meu nome é|meu nome é|aqui é)\s+(.+)$/i
-
-    );
-
-
-  if(!m)
-    return false;
-
-
-  const nome =
-
-    nomeSemTitulo(
-      m[1]
-        .trim()
-        .replace(/[.!?]+$/,"")
-    );
-
-
-  if(
-    !nome ||
-    nome.split(/\s+/).length > 8
-  ){
-
-    return false;
-
-  }
-
-
-  ctx.nome =
-    nome;
-
-
-  ctx.tratamento =
-    detectarTratamento(nome);
-
-
-  ctx.titulo =
-    `${ctx.tratamento} ${nome}`;
-
-
-  return true;
-
-}
-
-
-/* =====================================================
+/* =========================================================
    ENVIAR MENSAGEM
-===================================================== */
+   ========================================================= */
 
 async function send(){
 
@@ -1231,84 +899,67 @@ async function send(){
     return;
 
 
-  const capturouNome =
-    tentarCapturarNome(text);
-
-
   add(
     text,
     "user"
   );
 
 
-  input.value =
-    "";
-
+  input.value = "";
 
   quick([]);
 
 
-  if(capturouNome){
+  /*
+   * Tentar descobrir o nome se o cliente
+   * ainda não veio identificado.
+   */
 
-    say(
+  if(!ctx.nome){
 
-`Muito prazer, **${ctx.titulo}**. 👋
-
-Sou o **Assistente Virtual do Eduardo Ngongoyove Gabriel**. Como posso ajudá-lo(a)?`,
-
-      220
-
-    );
-
-
-    setTimeout(() => {
-
-      quick([
-
-        "🏥 Consultas na Namíbia",
-
-        "💰 Consultar preços",
-
-        "💻 Websites",
-
-        "📱 Redes sociais",
-
-        "🎵 Música",
-
-        "👤 Falar com Eduardo"
-
-      ]);
-
-    },450);
+    const m =
+      text.match(
+        /^(?:eu sou|sou|meu nome é|chamo-me|chamo me)\s+(.+)$/i
+      );
 
 
-    return;
+    if(m){
+
+      ctx.nome =
+        normalizarNome(
+          m[1].replace(
+            /[.!?]+$/,
+            ""
+          )
+        );
+
+    }
 
   }
 
 
   const payload = {
 
-    session_id:
-      sessionId,
+    session_id:sessionId,
 
-    message:
-      text,
+    message:text,
 
-    context:
-      {
+    context:{
 
-        ...ctx,
+      ...ctx,
 
-        instrucao_tratamento:
+      tratamento:
+        detectarTratamento(
+          nomeCliente()
+        ),
 
-          ctx.titulo
+      identificacao_cliente:
+        tratamentoCliente(),
 
-            ? `Trate sempre o cliente por ${ctx.titulo}. Nunca trate o cliente apenas pelo primeiro nome.`
+      instrucao_tratamento:
+        "Trate sempre o cliente por Senhor [Nome] ou Senhora [Nome]. Nunca use apenas o primeiro nome quando o nome estiver disponível."
 
-            : "Depois de receber o nome, determine o tratamento Senhor/Senhora e use-o em todo o atendimento."
-
-      },
+    },
 
     history:
       history.slice(-20)
@@ -1324,24 +975,17 @@ Sou o **Assistente Virtual do Eduardo Ngongoyove Gabriel**. Como posso ajudá-lo
     ){
 
       throw new Error(
-
         "O index.html foi aberto diretamente como ficheiro. Publique o backend e abra o endereço do chat, ou informe a URL do backend com ?api=https://SEU-BACKEND."
-
       );
 
     }
 
 
-    const response =
-
+    const r =
       await fetch(
-
         `${API_BASE}/api/chat`,
-
         {
-
-          method:
-            "POST",
+          method:"POST",
 
           headers:{
             "Content-Type":
@@ -1350,225 +994,151 @@ Sou o **Assistente Virtual do Eduardo Ngongoyove Gabriel**. Como posso ajudá-lo
 
           body:
             JSON.stringify(payload)
-
         }
-
       );
 
 
     const data =
-
-      await response
-        .json()
+      await r.json()
         .catch(
           () => ({})
         );
 
 
-    if(!response.ok){
-
+    if(!r.ok)
       throw new Error(
-
         data.error ||
-
-        `Falha no atendimento (HTTP ${response.status}).`
-
+        `Falha no atendimento (HTTP ${r.status}).`
       );
-
-    }
 
 
     say(
-
       data.reply ||
-
       "Desculpe, não consegui preparar a resposta agora.",
-
       220
-
     );
 
 
-    if(data.quick_replies){
-
+    if(data.quick_replies)
       quick(
         data.quick_replies
       );
 
-    }
 
-
-    if(data.context_label){
+    if(data.context_label)
 
       document.getElementById(
         "context"
       ).textContent =
         data.context_label;
 
-    }
 
   }
-
 
   catch(err){
 
     const msg =
-
       String(
         err?.message || ""
       );
 
 
     let friendly =
-
       "Neste momento não consegui ligar ao atendimento inteligente.";
 
 
     if(
-
-      msg.includes(
-        "não foi aceite"
-      ) ||
-
-      msg.includes(
-        "chave da OpenAI"
-      )
-
+      msg.includes("não foi aceite") ||
+      msg.includes("chave da OpenAI")
     ){
 
       friendly =
-
-        "O servidor está online, mas a chave da IA ainda não está configurada corretamente.";
+        "O servidor está online, mas a chave da OpenAI ainda não está configurada corretamente.";
 
     }
 
-
     else if(
-
-      msg.includes(
-        "modelo configurado"
-      )
-
+      msg.includes("modelo configurado")
     ){
 
       friendly =
-
         "O servidor está online, mas o modelo de IA configurado não está disponível para este projeto.";
 
     }
 
-
     else if(
-
-      msg.includes(
-        "limite de utilização"
-      )
-
+      msg.includes("limite de utilização")
     ){
 
       friendly =
-
         "O atendimento inteligente atingiu temporariamente o limite de utilização. Tente novamente em instantes.";
 
     }
 
-
     else if(
-
-      msg.includes(
-        "O index.html foi aberto diretamente"
-      )
-
+      msg.includes("O index.html foi aberto diretamente")
     ){
 
       friendly =
-
         "Este ficheiro HTML foi aberto diretamente no telefone. Para a IA funcionar, o chat precisa estar ligado ao backend online.";
 
     }
 
-
     else if(
-
-      msg.includes(
-        "Failed to fetch"
-      ) ||
-
-      msg.includes(
-        "NetworkError"
-      )
-
+      msg.includes("Failed to fetch") ||
+      msg.includes("NetworkError")
     ){
 
       friendly =
-
         "Não consegui contactar o servidor do atendimento inteligente. Verifique se o backend está online e se a URL configurada está correta.";
 
     }
 
 
     say(
-
-`${friendly}
+      `${friendly}
 
 ${msg && !msg.includes("HTTP")
-  ? msg
-  : "Tente novamente daqui a pouco."}`,
-
+        ? msg
+        : "Tente novamente daqui a pouco."}`,
       220
-
     );
 
 
-    console.error(
-      err
-    );
+    console.error(err);
 
   }
 
 }
 
 
-/* =====================================================
+/* =========================================================
    EVENTOS
-===================================================== */
+   ========================================================= */
 
-document
-  .getElementById("send")
-  .onclick =
-    send;
+document.getElementById("send")
+  .onclick = send;
 
 
-document
-  .getElementById("input")
+document.getElementById("input")
   .addEventListener(
-
     "keydown",
-
     e => {
 
-      if(
-        e.key === "Enter"
-      ){
-
-        e.preventDefault();
-
+      if(e.key === "Enter")
         send();
 
-      }
-
     }
-
   );
 
 
-/* =====================================================
-   INICIAR CHAT
-===================================================== */
+/* =========================================================
+   INICIAR
+   ========================================================= */
 
 showIntro();
 
 </script>
 
 </body>
-</html>
+  </html>
