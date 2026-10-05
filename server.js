@@ -147,30 +147,18 @@ function extractNameFromText(text, previousHistory = []) {
     .replace(/\s+/g, " ")
     .trim();
 
-  // NUNCA considerar como nome do cliente o nome de outra
-  // pessoa mencionada na mensagem.
-  // Exemplos:
-  // "falas com sr Emiliano"
-  // "quero falar com o senhor João"
-  // "procuro a senhora Maria"
-  // "pode chamar o Eduardo?"
-  //
-  // Nesses casos, o nome pertence à pessoa procurada,
-  // não necessariamente a quem está a conversar com a Azny.
-  if (
-    /\b(?:fale|fala|falas|falar|falei|contactar|contatar|procuro|procura|quero falar|gostaria de falar|chamar|chama|preciso falar|posso falar|quero contactar|quero contatar)\b[\s\S]*\b(?:sr\.?|senhor|sra\.?|senhora)\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]*/i.test(value)
-    ||
-    /\b(?:com|ao|a|para)\s+(?:o\s+|a\s+)?(?:sr\.?|senhor|sra\.?|senhora)\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]*/i.test(value)
-  ) {
-    return null;
+  // Formas naturais de apresentação do próprio cliente.
+  // Ex.: "Falas com o senhor Emiliano" ou "Está a falar com a senhora Maria".
+  let match = value.match(/^\s*(?:fala|fale|falas|falo|está a falar|estão a falar|estou a falar|aqui fala)\s+(?:com\s+)?(?:o\s+|a\s+)?(?:sr\.?|senhor|sra\.?|senhora)\s+(.+)$/i);
+
+  if (match) {
+    const name = cleanName(match[1]);
+    if (name && name.split(/\s+/).length <= 5 && !looksLikeServiceRequest(name)) {
+      return name;
+    }
   }
 
-  // Frases que falam explicitamente de outra pessoa.
-  if (
-    /\b(?:senhor|senhora|sr\.?|sra\.?)\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]*\b[\s\S]*\b(?:ele|ela|dele|dela|com ele|com ela|falar com|contactar|contatar)\b/i.test(value)
-  ) {
-    return null;
-  }
+  // Outras formas explícitas de apresentação continuam abaixo.
 
   // ----------------------------------------------------------
   // "Meu nome é João"
@@ -962,20 +950,35 @@ Sempre manter tratamento formal.
 // ============================================================
 
 function horarioSenhorEduardo() {
+  const now = new Date();
   const parts = new Intl.DateTimeFormat("pt-AO", {
     timeZone: "Africa/Luanda",
+    weekday: "long",
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23"
-  }).formatToParts(new Date());
+  }).formatToParts(now);
 
+  const weekday = parts.find((p) => p.type === "weekday")?.value || "";
   const hour = Number(parts.find((p) => p.type === "hour")?.value || 0);
+  const minute = Number(parts.find((p) => p.type === "minute")?.value || 0);
+  const totalMinutes = hour * 60 + minute;
 
-  if (hour >= 8 && hour < 19) {
-    return "O senhor Eduardo encontra-se dentro do horário habitual de atendimento.";
+  if (weekday === "domingo") return "Hoje é domingo e o senhor Eduardo não trabalha. Ele estará disponível novamente na segunda-feira, a partir das 8 horas.";
+  if (weekday === "sábado") {
+    if (totalMinutes >= 480 && totalMinutes < 930) return "Hoje é sábado e o senhor Eduardo está dentro do horário de atendimento, das 8 às 15h30.";
+    return "Hoje é sábado e o senhor Eduardo encontra-se indisponível neste momento. O horário de sábado é das 8 às 15h30.";
   }
+  if (totalMinutes >= 480 && totalMinutes < 1080) return "Hoje é dia útil e o senhor Eduardo está dentro do horário de atendimento, das 8 às 18 horas.";
+  return "O senhor Eduardo encontra-se indisponível neste momento. De segunda a sexta-feira, o horário de atendimento é das 8 às 18 horas.";
+}
 
-  return "O senhor Eduardo encontra-se indisponível no momento. Assim que estiver disponível novamente, poderá responder com a maior brevidade possível.";
+function agendaAmanhaEduardo() {
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const weekday = new Intl.DateTimeFormat("pt-AO", { timeZone: "Africa/Luanda", weekday: "long" }).format(tomorrow);
+  if (weekday === "domingo") return "Amanhã é domingo. O senhor Eduardo não trabalha aos domingos e estará novamente disponível na segunda-feira, a partir das 8 horas.";
+  if (weekday === "sábado") return "Amanhã é sábado. O senhor Eduardo estará disponível das 8 às 15h30.";
+  return "Amanhã é dia de trabalho. O senhor Eduardo estará disponível das 8 às 18 horas.";
 }
 
 // ============================================================
@@ -1043,6 +1046,9 @@ ${contextText}
 HORÁRIO E DISPONIBILIDADE DO SENHOR EDUARDO:
 ${horarioText}
 
+AGENDA DE AMANHÃ:
+${agendaAmanhaEduardo()}
+
 Se o cliente perguntar pelo senhor Eduardo, quiser falar com ele ou pedir atendimento direto com ele, informe a disponibilidade de acordo com o horário acima. Fora do horário, diga de forma natural que o senhor Eduardo encontra-se indisponível no momento e que, assim que estiver disponível novamente, poderá responder com a maior brevidade possível. Mesmo quando ele estiver indisponível, continue disponível para prestar as primeiras informações, esclarecer dúvidas e encaminhar o atendimento. Não invente outro horário.
 
 ${KNOWLEDGE_BASE}
@@ -1062,6 +1068,10 @@ REGRAS CRÍTICAS:
 11. Responda ao que o cliente acabou de perguntar.
 12. Se o cliente mudar de assunto, acompanhe a mudança.
 13. Não invente preços. Para preços, valores, custos, orçamentos, tarifas ou mensalidades, encaminhe sempre o cliente para o Portal de Suporte Técnico. Não use os valores internos da base como preço final. Se o serviço já estiver em discussão, não pergunte novamente qual é o serviço.
+14. Se o cliente perguntar se o senhor Eduardo estará disponível amanhã, use a AGENDA DE AMANHÃ acima. Segunda a sexta: 08:00–18:00. Sábado: 08:00–15:30. Domingo: não trabalha.
+15. Quando a AGENDA DE AMANHÃ indicar que ele trabalha, responda claramente que sim, informando o horário. Se for domingo, explique que não trabalha e informe quando estará disponível.
+16. Se o cliente se apresentar dizendo "Falas com o senhor [Nome]", "Está a falar com a senhora [Nome]", "Aqui fala o Sr. [Nome]" ou equivalente, considere esse nome como o nome do próprio cliente.
+17. Depois de identificar o nome, não peça novamente o nome.
 14. Faça apenas uma pergunta de cada vez.
 15. Seja profissional, cordial e natural.
 16. Não diga ao cliente que está seguindo regras internas.
