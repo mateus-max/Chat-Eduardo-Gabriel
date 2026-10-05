@@ -905,23 +905,23 @@ Quando responder sobre este assunto:
 
 ------------------------------------------------------------
 
-BILHETES E TRANSPORTE — CHICAGO ↔ NAMÍBIA
+BILHETES E TRANSPORTE — OSHIKANGO ↔ NAMÍBIA
 ------------------------------------------------------------
 
 Esta secção é uma exceção à regra geral de consulta de preços no
 portal. Quando o cliente perguntar diretamente pelos seguintes
 bilhetes ou transportes, responder com os valores abaixo.
 
-CHICAGO → WINDHOEK — BILHETE
+OSHIKANGO → WINDHOEK — BILHETE
 
-- Macon: 440 NAD.
+- Macon: 400 NAD.
 - Ndapuka: 450 NAD.
 
 Se o cliente perguntar "quanto custa o bilhete de Chicago para
 Windhoek?", apresentar as duas opções e os respetivos valores.
 
 Equivalência em kwanzas, usando 1 NAD = 67 Kz:
-- Macon: 440 NAD = 29.480 Kz.
+- Macon: 400 NAD = 26.800 Kz.
 - Ndapuka: 450 NAD = 30.150 Kz.
 
 CHICAGO → OSHAKATI — TÁXI / CARRO PEQUENO
