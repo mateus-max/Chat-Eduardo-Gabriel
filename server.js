@@ -1513,41 +1513,11 @@ async function handleChat(request, env) {
     );
 
   // ----------------------------------------------------------
-  // SE AINDA NÃO TEM NOME:
-  // NÃO DEIXAR O MODELO COMEÇAR O ATENDIMENTO
+  // ATENDIMENTO GERADO NATURALMENTE PELA IA
   // ----------------------------------------------------------
-
-  if (!clientName) {
-    const alreadyAskedName =
-      history.some(item =>
-        item.role === "assistant" &&
-        /diga-me o seu nome|qual é o seu nome|qual e o seu nome|seu nome/i.test(
-          item.content
-        )
-      );
-
-    if (!alreadyAskedName) {
-      return json({
-        ok: true,
-        reply:
-          "Antes de continuarmos, por favor, diga-me o seu nome.",
-        clientName: null,
-        clientTitle: null,
-        identified: false
-      });
-    }
-
-    // Se já pediu o nome e a pessoa ainda não informou
-    // explicitamente, continuar pedindo sem entrar no serviço.
-    return json({
-      ok: true,
-      reply:
-        "Para continuarmos, por favor, diga-me o seu nome.",
-      clientName: null,
-      clientTitle: null,
-      identified: false
-    });
-  }
+  // O nome identificado, quando existir, é enviado ao modelo como
+  // contexto. Quando ainda não existir, o próprio system prompt
+  // orienta a IA a pedir o nome de forma natural.
 
   // ----------------------------------------------------------
   // CLIENTE IDENTIFICADO
