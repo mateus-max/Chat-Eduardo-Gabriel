@@ -1202,9 +1202,10 @@ async function askGroq(env, messages) {
     body: JSON.stringify({
       model: MODEL,
       messages,
-      temperature: 0.25,
-      max_completion_tokens: 900,
-      top_p: 0.9,
+      temperature: 0.6,
+      max_completion_tokens: 1600,
+      top_p: 0.95,
+      reasoning_effort: "low",
       stream: false
     })
   });
@@ -1229,12 +1230,12 @@ async function askGroq(env, messages) {
     throw new Error(message);
   }
 
-  const content =
-    data?.choices?.[0]?.message?.content;
+  const message = data?.choices?.[0]?.message || {};
+  const content = message.content;
 
-  if (!content) {
+  if (!content || !String(content).trim()) {
     throw new Error(
-      "A Groq não devolveu conteúdo."
+      "A Groq não devolveu uma resposta de texto. Tente novamente."
     );
   }
 
