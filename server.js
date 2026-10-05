@@ -169,18 +169,29 @@ function extractNameFromText(text, previousHistory = []) {
   }
 
   // ----------------------------------------------------------
+  // Apresentações pelo nome:
   // "Meu nome é João"
-  // "Meu nome e João"
+  // "Eu me chamo João"
+  // "Me chamo João"
+  // "Chamo-me João"
+  // "Me chamo o senhor João"
+  // "Me chamo a senhora Maria"
+  // "Eu sou João"
+  // "Eu sou o senhor João"
   // ----------------------------------------------------------
 
   let match = value.match(
-    /(?:meu nome\s*(?:é|e|eh)|meu nome chama-se|meu nome chama|chamo-me|chamo)\s+(.+)/i
+    /^(?:(?:eu\s+)?(?:meu nome\s*(?:é|e|eh)|meu nome chama-se|meu nome chama|(?:eu\s+)?me\s+chamo|(?:eu\s+)?chamo-me|(?:eu\s+)?chamo)\s+)(?:(?:o|a)\s+)?(?:(?:sr\.?|senhor|sra\.?|senhora)\s+)?(.+)$/i
   );
 
   if (match) {
     const name = cleanName(match[1]);
 
-    if (name) {
+    if (
+      name &&
+      name.split(/\s+/).length <= 5 &&
+      !looksLikeServiceRequest(name)
+    ) {
       return name;
     }
   }
@@ -189,23 +200,14 @@ function extractNameFromText(text, previousHistory = []) {
   // "Sou João"
   // "Sou o João"
   // "Sou a Maria"
+  // "Eu sou João"
+  // "Eu sou o senhor João"
+  // "Eu sou a senhora Maria"
   // ----------------------------------------------------------
 
   match = value.match(
-    /^sou\s+(?:o\s+|a\s+)?(.+)$/i
+    /^(?:eu\s+)?sou\s+(?:(?:o|a)\s+)?(?:(?:sr\.?|senhor|sra\.?|senhora)\s+)?(.+)$/i
   );
-
-  if (match) {
-    const possible = cleanName(match[1]);
-
-    if (
-      possible &&
-      possible.split(" ").length <= 5 &&
-      !looksLikeServiceRequest(possible)
-    ) {
-      return possible;
-    }
-  }
 
   // ----------------------------------------------------------
   // "Sr. João"
