@@ -158,7 +158,14 @@ function extractNameFromText(text, previousHistory = []) {
     }
   }
 
-  // Outras formas explícitas de apresentação continuam abaixo.
+  // Apresentações em inglês.
+  let englishMatch = value.match(/^\s*(?:my name is|my name's|i am|i'm|this is|you're speaking (?:to|with)|you are speaking (?:to|with)|speaking (?:to|with))\s+(?:(?:mr|mrs|ms|miss)\.?\s+)?(.+)$/i);
+  if (englishMatch) {
+    const name = cleanName(englishMatch[1]);
+    if (name && name.split(/\s+/).length <= 5 && !looksLikeServiceRequest(name)) {
+      return name;
+    }
+  }
 
   // ----------------------------------------------------------
   // "Meu nome é João"
@@ -305,6 +312,15 @@ function looksLikeServiceRequest(text) {
 // DETECTAR TRATAMENTO
 // ============================================================
 
+function detectLanguage(text, history = []) {
+  const sample = [...history.map(x => x.content || ""), text || ""].join(" ").toLowerCase();
+  const englishSignals = ["hello","hi","good morning","good afternoon","good evening","my name is","i'm","i am","i need","i want","please","how much","how does","where","when","what","why","can you","i would like","speak english","in english","call","phone"];
+  const portugueseSignals = ["olá","ola","bom dia","boa tarde","boa noite","meu nome","sou","preciso","quero","por favor","quanto custa","como funciona","onde","quando","o que","porquê","pode","falar","ligar"];
+  const en = englishSignals.filter(x => sample.includes(x)).length;
+  const pt = portugueseSignals.filter(x => sample.includes(x)).length;
+  return en > pt ? "en" : "pt";
+}
+
 function detectTitle(text, history = []) {
   const allText = [
     ...history.map(x => x.content || ""),
@@ -318,7 +334,8 @@ function detectTitle(text, history = []) {
     /\bsra\.?\b/.test(allText) ||
     /\bsenhora\b/.test(allText) ||
     /\bsou a senhora\b/.test(allText) ||
-    /\bsou uma senhora\b/.test(allText)
+    /\bsou uma senhora\b/.test(allText) ||
+    /\b(?:mrs|ms|miss|madam|ma'am)\.?\b/.test(allText)
   ) {
     return "Sra.";
   }
@@ -328,7 +345,8 @@ function detectTitle(text, history = []) {
     /\bsr\.?\b/.test(allText) ||
     /\bsenhor\b/.test(allText) ||
     /\bsou o senhor\b/.test(allText) ||
-    /\bsou um senhor\b/.test(allText)
+    /\bsou um senhor\b/.test(allText) ||
+    /\bmr\.?\b/.test(allText)
   ) {
     return "Sr.";
   }
@@ -988,7 +1006,8 @@ function agendaAmanhaEduardo() {
 function buildSystemPrompt({
   clientName,
   clientTitle,
-  context
+  context,
+  language = "pt"
 }) {
   const identity =
     clientName
@@ -1024,6 +1043,9 @@ ou
 `;
 
   const horarioText = horarioSenhorEduardo();
+  const languageInstruction = language === "en"
+    ? "Respond entirely in English. Use Mr./Ms. for the client and keep the whole reply in English."
+    : "Responda inteiramente em português, salvo se o cliente mudar claramente de idioma.";
 
   const contextText =
     context && Object.keys(context).length
@@ -1052,6 +1074,18 @@ ${agendaAmanhaEduardo()}
 Se o cliente perguntar pelo senhor Eduardo, quiser falar com ele ou pedir atendimento direto com ele, informe a disponibilidade de acordo com o horário acima. Fora do horário, diga de forma natural que o senhor Eduardo encontra-se indisponível no momento e que, assim que estiver disponível novamente, poderá responder com a maior brevidade possível. Mesmo quando ele estiver indisponível, continue disponível para prestar as primeiras informações, esclarecer dúvidas e encaminhar o atendimento. Não invente outro horário.
 
 ${KNOWLEDGE_BASE}
+
+IDIOMA DA CONVERSA:
+${languageInstruction}
+- Detecte o idioma usado pelo cliente na mensagem atual e no histórico.
+- Se o cliente estiver a falar em inglês, responda EXCLUSIVAMENTE em inglês.
+- Não misture português e inglês na mesma resposta, salvo se o cliente pedir tradução.
+- Em inglês, use "Mr. [Nome]" ou "Ms. [Nome]" como tratamento formal.
+
+CONTACTO OFICIAL PARA WHATSAPP:
+- O número oficial do Sr. Eduardo é +244 931 057 760.
+- Para links WhatsApp, use o formato internacional sem sinais ou espaços: 244931057760.
+- Nunca invente ou substitua este número.
 
 REGRAS CRÍTICAS:
 
@@ -1340,11 +1374,12 @@ async function handleChat(request, env) {
   // CLIENTE IDENTIFICADO
   // ----------------------------------------------------------
 
-  const effectiveTitle =
-    clientTitle || "Sr.";
-
-  const formalName =
-    `${effectiveTitle} ${clientName}`;
+  const language = detectLanguage(message, history);
+  const effectiveTitle = clientTitle || "Sr.";
+  const localizedTitle = language === "en"
+    ? (effectiveTitle === "Sra." ? "Ms." : "Mr.")
+    : effectiveTitle;
+  const formalName = `${localizedTitle} ${clientName}`;
 
   // ----------------------------------------------------------
   // SYSTEM PROMPT
@@ -1353,8 +1388,9 @@ async function handleChat(request, env) {
   const systemPrompt =
     buildSystemPrompt({
       clientName,
-      clientTitle: effectiveTitle,
-      context
+      clientTitle: localizedTitle,
+      context,
+      language
     });
 
   // ----------------------------------------------------------
