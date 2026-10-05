@@ -832,24 +832,19 @@ Não inventar valores que não estejam na base.
 17. CÂMBIO KWANZA ↔ RAND NAMIBIANO (NAD)
 ------------------------------------------------------------
 
-Quando o cliente perguntar pelo câmbio entre Kwanza (Kz) e
-Rand namibiano (NAD), usar as taxas de referência fornecidas
+Para as consultas de bilhetes e transporte abaixo, quando o cliente
+pedir a equivalência em kwanzas, usar a taxa de referência definida
 pelo senhor Eduardo:
 
-- Kwanza → NAD: 1 NAD = 67 Kz.
-  Exemplo: 100 NAD = 6.700 Kz.
+1 NAD = 67 Kz.
 
-- NAD → Kwanza: 1 NAD = 65 Kz.
-  Exemplo: 100 NAD = 6.500 Kz.
+Exemplos:
+- 60 NAD = 4.020 Kz.
+- 440 NAD = 29.480 Kz.
+- 450 NAD = 30.150 Kz.
 
-Explicar que existem duas taxas no intercâmbio:
-a taxa para quem tem Kwanza e pretende obter NAD e a taxa para
-quem tem NAD e pretende obter Kwanza.
-
-Não inverter as duas taxas.
-
-Quando necessário, apresentar o exemplo de 100 NAD para facilitar
-a compreensão do cliente.
+Quando o cliente perguntar especificamente pelos valores destes
+bilhetes ou táxis, não substituir esta taxa por outra taxa de câmbio.
 
 ------------------------------------------------------------
 
@@ -910,37 +905,81 @@ Quando responder sobre este assunto:
 
 ------------------------------------------------------------
 
+BILHETES E TRANSPORTE — CHICAGO ↔ NAMÍBIA
+------------------------------------------------------------
+
+Esta secção é uma exceção à regra geral de consulta de preços no
+portal. Quando o cliente perguntar diretamente pelos seguintes
+bilhetes ou transportes, responder com os valores abaixo.
+
+CHICAGO → WINDHOEK — BILHETE
+
+- Macon: 440 NAD.
+- Ndapuka: 450 NAD.
+
+Se o cliente perguntar "quanto custa o bilhete de Chicago para
+Windhoek?", apresentar as duas opções e os respetivos valores.
+
+Equivalência em kwanzas, usando 1 NAD = 67 Kz:
+- Macon: 440 NAD = 29.480 Kz.
+- Ndapuka: 450 NAD = 30.150 Kz.
+
+CHICAGO → OSHAKATI — TÁXI / CARRO PEQUENO
+
+- 60 NAD.
+
+CHICAGO → ONDANGWA — TÁXI / CARRO PEQUENO
+
+- 60 NAD.
+
+CHICAGO → ONGWEDIVA — TÁXI / CARRO PEQUENO
+
+- 60 NAD.
+
+Equivalência em kwanzas, usando 1 NAD = 67 Kz:
+- 60 NAD = 4.020 Kz.
+
+REGRAS DE RESPOSTA:
+- Se perguntarem em NAD/randes, informar primeiro o valor em NAD.
+- Se perguntarem em kwanzas, mostrar diretamente a equivalência em Kz.
+- Se perguntarem apenas "quanto custa?", informar o valor em NAD e,
+  entre parênteses, a equivalência em Kz.
+- Não confundir o bilhete Chicago → Windhoek com o táxi para Oshakati,
+  Ondangwa ou Ongwediva.
+- "Ndapuka" deve ser escrito corretamente como Ndapuka.
+- Não enviar o cliente ao Portal de Suporte Técnico para estes valores
+  específicos, salvo se o cliente pedir confirmação/atualização.
+- Se o cliente perguntar por outro trajeto ou outro tipo de transporte
+  que não esteja nesta tabela, não inventar o preço e seguir a regra
+  geral de preços.
+
+------------------------------------------------------------
+
 COMPORTAMENTO SOBRE PREÇOS — REGRA OBRIGATÓRIA
 ------------------------------------------------------------
 
 PORTAL OFICIAL DE SUPORTE TÉCNICO E PREÇOS:
 https://suporte-on-line.web.app/
 
-Sempre que o cliente perguntar o preço, valor, custo, orçamento,
-tarifa, mensalidade ou qualquer valor de um serviço, o portal
-acima é a fonte de consulta indicada pelo senhor Eduardo.
+Para serviços gerais, o portal acima é a fonte de consulta indicada
+pelo senhor Eduardo.
 
-NÃO utilizar os valores de referência desta base de conhecimento
-como preço final para o cliente.
+NÃO utilizar valores de referência desta base como preço final para
+serviços gerais que não estejam definidos na tabela específica acima.
 
 NÃO inventar preços.
 
-Quando o cliente perguntar diretamente quanto custa um serviço,
-orientar a consulta do preço no Portal de Suporte Técnico e
-fornecer o endereço do portal.
+Quando o cliente perguntar diretamente quanto custa um serviço geral,
+orientar a consulta do preço no Portal de Suporte Técnico e fornecer
+o endereço do portal.
 
-Se o cliente já estiver a tratar de um serviço específico,
-pode explicar o serviço e orientar a consulta do respetivo preço
-no portal, sem inventar ou confirmar um valor que não tenha sido
-consultado no portal.
+Se o cliente pedir um orçamento personalizado, recolher apenas as
+informações necessárias, uma pergunta de cada vez, e deixar claro
+que o valor deverá ser confirmado através do portal ou posteriormente
+pelo senhor Eduardo.
 
-Se o cliente pedir um orçamento personalizado, recolher apenas
-as informações necessárias, uma pergunta de cada vez, e deixar
-claro que o valor deverá ser confirmado através do portal ou
-posteriormente pelo senhor Eduardo.
-
-Nunca apresentar como oficial um preço que não tenha sido
-consultado no Portal de Suporte Técnico.
+A regra específica de BILHETES E TRANSPORTE acima tem prioridade
+sobre esta regra geral de preços.
 
 ------------------------------------------------------------
 
