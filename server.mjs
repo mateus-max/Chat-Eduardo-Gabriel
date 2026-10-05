@@ -2,13 +2,17 @@ import "dotenv/config";
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 import crypto from "node:crypto";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+/* =====================================================
+   CONFIGURAÇÃO GERAL
+===================================================== */
 
 app.use(express.json({ limit: "1mb" }));
 
@@ -41,7 +45,6 @@ app.use((req, res, next) => {
   next();
 });
 
-
 /* =====================================================
    FRONTEND
 ===================================================== */
@@ -52,7 +55,6 @@ app.use(
   )
 );
 
-
 /* =====================================================
    CONFIGURAÇÕES
 ===================================================== */
@@ -61,41 +63,42 @@ const PORT =
   process.env.PORT || 3000;
 
 const MODEL =
-  process.env.OPENAI_MODEL ||
-  "gpt-6-astra";
+  process.env.GEMINI_MODEL ||
+  "gemini-3.8-flash";
 
 const PRICE_PORTAL_URL =
   process.env.PRICE_PORTAL_URL ||
   "https://suporte-on-line.web.app";
 
-
 /* =====================================================
-   OPENAI
+   GEMINI API
 ===================================================== */
 
-let openai = null;
+let gemini = null;
 
-if (process.env.OPENAI_API_KEY) {
+if (process.env.GEMINI_API_KEY) {
 
-  openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
+  gemini = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY
   });
+
+  console.log(
+    "Gemini API configurada."
+  );
 
 } else {
 
   console.warn(
-    "AVISO: OPENAI_API_KEY não está configurada."
+    "AVISO: GEMINI_API_KEY não está configurada."
   );
 
 }
-
 
 /* =====================================================
    SESSÕES
 ===================================================== */
 
 const sessions = new Map();
-
 
 /* =====================================================
    BASE DE CONHECIMENTO
@@ -164,17 +167,22 @@ const KNOWLEDGE = {
     general:
       "Consultas médicas na Namíbia: o portal apresenta opções em Oshakati, Ongwediva e Ondangwa. Oshakati apresenta hospital público/estatal e clínica privada; Ongwediva apresenta MediPark como clínica privada; Ondangwa apresenta clínica privada.",
 
+
     public:
       "Fluxo de atendimento público indicado no portal: cartão de atendimento 150 NAD, aproximadamente 9.000 Kz, peso e triagem, atendimento de enfermagem, testes ou exames prioritários, encaminhamento ao doutor quando necessário, avaliação médica, exames quando indicados, retorno após resultados e prescrição ou orientação. Exames podem ter custos próprios.",
+
 
     private:
       "Atendimento privado: consulta paga. O valor depende da clínica, médico e especialidade. A informação disponível indica consultas a partir de 350 NAD, aproximadamente 22.000 a 23.000 Kz, com exames cobrados à parte.",
 
+
     oshakati:
       "Oshakati: Hospital Geral do Estado/hospital público e clínica privada de Oshakati.",
 
+
     ongwediva:
       "Ongwediva: MediPark, clínica privada.",
+
 
     ondangwa:
       "Ondangwa: clínica privada."
@@ -191,14 +199,18 @@ const KNOWLEDGE = {
     website:
       "Criação de website: pequena empresa 80.000 Kz; média 120.000 Kz; grande 200.000 Kz, conforme o projeto e porte.",
 
+
     software:
       "Software: pequena empresa 190.000 Kz; média 300.000 Kz; grande 600.000 Kz, conforme o sistema.",
+
 
     social:
       "Gestão de Redes Sociais: 35.000 Kz por mês.",
 
+
     promotion:
       "Promoção de Página: 2.500 Kz por dia e 12.000 Kz por semana.",
+
 
     music:
       "Curso de Música: 10.000 Kz por mês; promoção inicial de 8.000 Kz."
@@ -218,10 +230,13 @@ Você é o Assistente Virtual do Eduardo Ngongoyove Gabriel.
 
 Você atende clientes de forma natural, cordial, inteligente e contextual.
 
-Você NÃO é o próprio Eduardo. Você é o assistente virtual dele.
+Você NÃO é o próprio Eduardo.
+Você é o assistente virtual dele.
 
 
-COMPORTAMENTO:
+=====================================================
+COMPORTAMENTO
+=====================================================
 
 1. Não repita a saudação em todas as mensagens.
 
@@ -255,48 +270,66 @@ ${PRICE_PORTAL_URL}
 
 15. Quando for útil, indique ao cliente o portal de consulta de preços.
 
-16. Em assuntos médicos, forneça somente informações administrativas e de atendimento disponíveis na base. Não faça diagnóstico.
+16. Em assuntos médicos, forneça somente informações administrativas e de atendimento disponíveis na base.
 
-17. Não faça prescrição médica.
+17. Não faça diagnóstico.
 
-18. Não diga que você é médico.
+18. Não faça prescrição médica.
 
-19. Quando for necessário atendimento humano, informe que Eduardo poderá assumir o atendimento.
+19. Não diga que você é médico.
 
-20. Seja natural. Evite respostas robotizadas.
+20. Quando for necessário atendimento humano, informe que Eduardo poderá assumir o atendimento.
 
-21. Não repita "Pode explicar um pouco mais" quando a pergunta do cliente já for clara.
+21. Seja natural.
 
-22. Se o cliente disser "Bom dia", responda naturalmente, por exemplo:
+22. Evite respostas robotizadas.
+
+23. Não repita "Pode explicar um pouco mais" quando a pergunta do cliente já for clara.
+
+24. Se o cliente disser "Bom dia", responda naturalmente.
+
+Exemplo:
+
 "Bom dia! 👋 Como posso ajudar?"
 
-23. Se o cliente perguntar algo específico, responda diretamente.
+25. Se o cliente perguntar algo específico, responda diretamente.
 
-24. Se o cliente disser:
-"Quero saber como funcionam as consultas médicas na Namíbia",
-explique o processo e pergunte somente o que for necessário.
+26. Se o cliente perguntar como funcionam as consultas médicas na Namíbia, explique o processo e pergunte somente o que for necessário.
 
-25. Se o cliente perguntar:
-"Quanto custa a consulta?",
-use o contexto da conversa para identificar se está falando de consulta médica, website, música ou outro serviço.
+27. Se o cliente perguntar "Quanto custa a consulta?", use o contexto da conversa para identificar se está falando de consulta médica, website, música ou outro serviço.
 
-26. Nunca reinicie a conversa sem necessidade.
+28. Nunca reinicie a conversa sem necessidade.
+
+29. Não diga ao cliente que precisa repetir a pergunta se o contexto já estiver disponível.
+
+30. Se o cliente perguntar "e quanto custa?", "e o preço?", "quanto é?", "qual o valor?", interprete a pergunta de acordo com o assunto imediatamente anterior.
+
+31. Se o cliente perguntar sobre um serviço que não está na base, diga que a informação precisa ser confirmada.
+
+32. Não invente informações para preencher lacunas.
 
 
-IDENTIDADE:
+=====================================================
+IDENTIDADE
+=====================================================
 
 Nome:
+
 Eduardo Ngongoyove Gabriel
 
 Nome do atendimento:
+
 Assistente Virtual — Eduardo Gabriel
+
 
 O assistente pode dizer:
 
 "Sou o Assistente Virtual do Eduardo Gabriel."
 
 
-BASE DE INFORMAÇÕES:
+=====================================================
+BASE DE INFORMAÇÕES
+=====================================================
 
 Use exclusivamente as informações fornecidas na base abaixo para os serviços e preços de Eduardo.
 
@@ -304,27 +337,35 @@ Use exclusivamente as informações fornecidas na base abaixo para os serviços 
 
 
 /* =====================================================
-   CRIAR PROMPT
+   CRIAR INSTRUÇÃO COMPLETA
 ===================================================== */
 
 function makePrompt(context) {
 
   return (
+
     INSTRUCTIONS +
+
     "\n\n" +
+
     "BASE DE CONHECIMENTO:\n" +
+
     JSON.stringify(
       KNOWLEDGE,
       null,
       2
     ) +
+
     "\n\n" +
+
     "CONTEXTO DO CLIENTE:\n" +
+
     JSON.stringify(
       context || {},
       null,
       2
     )
+
   );
 
 }
@@ -344,8 +385,8 @@ app.get(
 
       model: MODEL,
 
-      openai_configured:
-        Boolean(openai)
+      gemini_configured:
+        Boolean(gemini)
 
     });
 
@@ -390,15 +431,15 @@ app.post(
 
 
       /* -----------------------------------------------
-         VERIFICAR OPENAI
+         VERIFICAR GEMINI
       ------------------------------------------------ */
 
-      if (!openai) {
+      if (!gemini) {
 
         return res.status(503).json({
 
           error:
-            "OPENAI_API_KEY não configurada no servidor."
+            "GEMINI_API_KEY não configurada no servidor."
 
         });
 
@@ -416,66 +457,77 @@ app.post(
         );
 
 
-      const previousResponse =
+      const previousInteraction =
         sessions.get(
           sessionId
         );
 
 
       /* -----------------------------------------------
-         PEDIDO À OPENAI
+         PEDIDO AO GEMINI
       ------------------------------------------------ */
 
       const request = {
 
         model: MODEL,
 
-        instructions:
+        system_instruction:
           makePrompt(context),
 
-        input: message,
-
-        store: true
+        input: message
 
       };
 
 
-      if (previousResponse) {
+      /* -----------------------------------------------
+         CONTINUAR CONVERSA
+      ------------------------------------------------ */
 
-        request.previous_response_id =
-          previousResponse;
+      if (previousInteraction) {
+
+        request.previous_interaction_id =
+          previousInteraction;
 
       }
 
 
-      const response =
-        await openai.responses.create(
+      /* -----------------------------------------------
+         GERAR RESPOSTA
+      ------------------------------------------------ */
+
+      const interaction =
+        await gemini.interactions.create(
           request
         );
 
 
       /* -----------------------------------------------
-         GUARDAR CONTEXTO
+         GUARDAR SESSÃO
       ------------------------------------------------ */
 
       sessions.set(
+
         sessionId,
-        response.id
+
+        interaction.id
+
       );
 
 
       /* -----------------------------------------------
-         RESPOSTA
+         TEXTO DA RESPOSTA
       ------------------------------------------------ */
 
       const reply =
-        response.output_text ||
+
+        interaction.output_text ||
+
         "Desculpe, não consegui preparar a resposta neste momento.";
 
 
-      /* -----------------------------------------------
+      /* =================================================
          BOTÕES INTELIGENTES
-      ------------------------------------------------ */
+      ================================================= */
 
       const lower =
         reply.toLowerCase();
@@ -484,13 +536,24 @@ app.post(
       let quickReplies = [];
 
 
+      /* -----------------------------------------------
+         NAMÍBIA / HOSPITAL
+      ------------------------------------------------ */
+
       if (
+
         lower.includes("namíbia") ||
+
         lower.includes("oshakati") ||
+
         lower.includes("ongwediva") ||
+
         lower.includes("ondangwa") ||
+
         lower.includes("hospital") ||
+
         lower.includes("clínica")
+
       ) {
 
         quickReplies = [
@@ -511,9 +574,17 @@ app.post(
 
       }
 
+
+      /* -----------------------------------------------
+         WEBSITE
+      ------------------------------------------------ */
+
       else if (
+
         lower.includes("website") ||
+
         lower.includes("site")
+
       ) {
 
         quickReplies = [
@@ -530,10 +601,19 @@ app.post(
 
       }
 
+
+      /* -----------------------------------------------
+         MÚSICA
+      ------------------------------------------------ */
+
       else if (
+
         lower.includes("música") ||
+
         lower.includes("piano") ||
+
         lower.includes("solfejo")
+
       ) {
 
         quickReplies = [
@@ -550,11 +630,21 @@ app.post(
 
       }
 
+
+      /* -----------------------------------------------
+         PREÇOS
+      ------------------------------------------------ */
+
       else if (
+
         lower.includes("preço") ||
+
         lower.includes("valor") ||
+
         lower.includes("kz") ||
+
         lower.includes("custa")
+
       ) {
 
         quickReplies = [
@@ -572,6 +662,11 @@ app.post(
         ];
 
       }
+
+
+      /* -----------------------------------------------
+         PADRÃO
+      ------------------------------------------------ */
 
       else {
 
@@ -594,19 +689,22 @@ app.post(
       }
 
 
-      /* -----------------------------------------------
+      /* =================================================
          CONTEXTO VISUAL
-      ------------------------------------------------ */
+      ================================================= */
 
       const contextLabel =
+
         context.servico
+
           ? `Atendimento: ${context.servico}`
+
           : "Conversa com Assistente Virtual";
 
 
-      /* -----------------------------------------------
-         ENVIAR AO FRONTEND
-      ------------------------------------------------ */
+      /* =================================================
+         RESPOSTA PARA O FRONTEND
+      ================================================= */
 
       return res.json({
 
@@ -626,37 +724,69 @@ app.post(
     }
 
 
+    /* ===================================================
+       ERROS
+    =================================================== */
+
     catch (error) {
 
       console.error(
-        "ERRO OPENAI:",
+        "ERRO GEMINI:",
         error
       );
 
 
       const status =
-        Number(error?.status) || 500;
+
+        Number(error?.status) ||
+
+        Number(error?.statusCode) ||
+
+        Number(
+          error?.response?.status
+        ) ||
+
+        500;
 
 
       let message =
+
         "Não foi possível processar a mensagem neste momento.";
 
 
-      if (status === 401) {
+      /* -----------------------------------------------
+         ERRO 400
+      ------------------------------------------------ */
+
+      if (status === 400) {
 
         message =
-          "A chave da OpenAI não é válida ou não foi configurada corretamente.";
+          "A solicitação enviada ao Gemini é inválida.";
 
       }
 
 
-      else if (status === 403) {
+      /* -----------------------------------------------
+         ERRO 401 / 403
+      ------------------------------------------------ */
+
+      else if (
+
+        status === 401 ||
+
+        status === 403
+
+      ) {
 
         message =
-          "O projeto da OpenAI não tem autorização para utilizar este recurso.";
+          "A chave do Gemini não é válida ou não tem acesso a este recurso.";
 
       }
 
+
+      /* -----------------------------------------------
+         ERRO 404
+      ------------------------------------------------ */
 
       else if (status === 404) {
 
@@ -666,10 +796,14 @@ app.post(
       }
 
 
+      /* -----------------------------------------------
+         ERRO 429
+      ------------------------------------------------ */
+
       else if (status === 429) {
 
         message =
-          "A OpenAI informou que o limite de utilização foi atingido.";
+          "O limite de utilização do Gemini foi atingido temporariamente. Tente novamente mais tarde.";
 
       }
 
@@ -681,10 +815,14 @@ app.post(
 
 
       return res.status(
+
         status >= 400 &&
         status < 600
+
           ? status
+
           : 500
+
       ).json({
 
         error:
@@ -717,9 +855,13 @@ app.use(
     res.sendFile(
 
       path.join(
+
         __dirname,
+
         "public",
+
         "index.html"
+
       )
 
     );
@@ -733,12 +875,17 @@ app.use(
 ===================================================== */
 
 app.listen(
+
   PORT,
+
   () => {
 
     console.log(
-      `Eduardo Chat ativo na porta ${PORT}`
+
+      `Eduardo Chat com Gemini ativo na porta ${PORT}`
+
     );
 
   }
+
 );
