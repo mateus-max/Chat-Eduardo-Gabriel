@@ -1209,60 +1209,97 @@ function buildMessages(history, currentMessage, systemPrompt) {
 // ============================================================
 
 async function askGroq(env, messages) {
-  if (!env.GROQ_API_KEY) {
+  const apiKey =
+    env.GROQ_API_KEY ||
+    env.GROQ_API_TOKEN ||
+    env.GROQ_KEY;
+
+  if (!apiKey) {
     throw new Error("IA_NOT_CONFIGURED");
   }
 
+  // Mantemos dois modelos de produção como redundância.
+  // Se um deles falhar por capacidade, limite ou configuração,
+  // o segundo pode assumir sem alterar a conversa do cliente.
+  const models = [
+    {
+      id: "openai/gpt-oss-20b",
+      max_completion_tokens: 1800
+    },
+    {
+      id: "openai/gpt-oss-120b",
+      max_completion_tokens: 2200
+    }
+  ];
+
   let lastError = null;
 
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      const response = await fetch(GROQ_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${env.GROQ_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: MODEL,
-          messages,
-          temperature: 0.6,
-          max_completion_tokens: attempt === 1 ? 1800 : 3000,
-          top_p: 0.95,
-          reasoning_effort: "low",
-          stream: false
-        })
-      });
-
-      const raw = await response.text();
-      let data;
-
+  for (const model of models) {
+    for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        data = JSON.parse(raw);
-      } catch {
-        throw new Error("INVALID_GROQ_RESPONSE");
-      }
+        const response = await fetch(GROQ_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: model.id,
+            messages,
+            temperature: 0.6,
+            max_completion_tokens: model.max_completion_tokens,
+            top_p: 0.95,
+            reasoning_effort: "low",
+            reasoning_format: "hidden",
+            stream: false
+          })
+        });
 
-      if (!response.ok) {
-        throw new Error(
-          data?.error?.message || `GROQ_HTTP_${response.status}`
+        const raw = await response.text();
+
+        let data;
+        try {
+          data = JSON.parse(raw);
+        } catch {
+          throw new Error("INVALID_GROQ_RESPONSE");
+        }
+
+        if (!response.ok) {
+          const providerMessage =
+            data?.error?.message ||
+            `GROQ_HTTP_${response.status}`;
+
+          throw new Error(providerMessage);
+        }
+
+        const content =
+          String(
+            data?.choices?.[0]?.message?.content ||
+            ""
+          ).trim();
+
+        if (content) {
+          return content;
+        }
+
+        throw new Error("EMPTY_GROQ_CONTENT");
+      } catch (error) {
+        lastError = error;
+
+        console.error(
+          "Falha interna da IA",
+          JSON.stringify({
+            model: model.id,
+            attempt,
+            error: String(error?.message || error)
+          })
         );
-      }
 
-      const message = data?.choices?.[0]?.message || {};
-      const content = String(message.content || "").trim();
-
-      if (content) {
-        return content;
-      }
-
-      throw new Error("EMPTY_GROQ_CONTENT");
-    } catch (error) {
-      lastError = error;
-      console.error("Erro interno ao obter resposta da IA:", error);
-
-      if (attempt < 2) {
-        await new Promise(resolve => setTimeout(resolve, 350));
+        if (attempt < 2) {
+          await new Promise(resolve =>
+            setTimeout(resolve, 500)
+          );
+        }
       }
     }
   }
