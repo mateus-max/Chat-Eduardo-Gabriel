@@ -592,8 +592,9 @@ async function processAttachment(file){
     if(data.quick_replies) quick(data.quick_replies);
   }catch(err){
     typingRow.remove();
-    setAttachmentStatus(row,"Não foi possível ler este ficheiro.");
-    add(String(err?.message||"Não foi possível ler o documento."),"bot");
+    setAttachmentStatus(row,"Não foi possível processar este ficheiro.");
+    add("Peço desculpa, não foi possível processar o ficheiro neste momento. Por favor, tente novamente.","bot");
+    console.error(err);
   }
 }
 let mediaRecorder=null, voiceChunks=[];
@@ -1323,7 +1324,8 @@ async function processVoiceMessage(blob){
     chat.scrollTop=chat.scrollHeight;
   }catch(err){
     typingRow.remove();
-    add(String(err?.message || "Não consegui compreender o áudio neste momento."),"bot");
+    add("Peço desculpa, não foi possível processar a mensagem de voz neste momento. Por favor, tente novamente.","bot");
+    console.error(err);
   }
 }
 
@@ -1468,12 +1470,7 @@ async function send(){
 
 
     if(!r.ok){
-      const detail = data.details && data.details !== data.error
-        ? ` — ${data.details}`
-        : "";
-      throw new Error(
-        (data.error || `Falha no atendimento (HTTP ${r.status}).`) + detail
-      );
+      throw new Error("ATENDIMENTO_INDISPONIVEL");
     }
 
 
@@ -1565,11 +1562,7 @@ async function send(){
 
 
     say(
-      `${friendly}
-
-${msg && !msg.includes("HTTP")
-        ? msg
-        : "Tente novamente daqui a pouco."}`,
+      `${friendly}`,
       220
     );
 
