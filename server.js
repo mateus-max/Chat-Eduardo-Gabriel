@@ -1629,6 +1629,82 @@ ${documentContext}
 }
 
 // ============================================================
+// PAINEL ADMINISTRATIVO — CONVERSAS
+// ============================================================
+
+function getAdminToken(request) {
+  return (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+}
+
+async function requireAdmin(request, env) {
+  if (!env.CONVERSATIONS || !env.ADMIN_PANEL_KEY) return false;
+  const token = getAdminToken(request);
+  if (!token) return false;
+  return (await env.CONVERSATIONS.get("admin:session:" + token)) === "1";
+}
+
+async function handleAdminLogin(request, env) {
+  if (!env.CONVERSATIONS || !env.ADMIN_PANEL_KEY) {
+    return json({ok:false,error:"O painel ainda não foi configurado no Cloudflare."},503);
+  }
+  let body;
+  try { body = await request.json(); } catch { return json({ok:false,error:"Pedido inválido."},400); }
+  const key = typeof body?.key === "string" ? body.key.trim() : "";
+  if (!key || key !== env.ADMIN_PANEL_KEY) return json({ok:false,error:"Código administrativo incorreto."},401);
+  const token = crypto.randomUUID() + "-" + crypto.randomUUID();
+  await env.CONVERSATIONS.put("admin:session:" + token, "1", {expirationTtl:604800});
+  return json({ok:true,token});
+}
+
+async function handleSaveConversation(request, env) {
+  if (!env.CONVERSATIONS) return json({ok:false,error:"Armazenamento ainda não configurado."},503);
+  let body;
+  try { body = await request.json(); } catch { return json({ok:false,error:"Pedido inválido."},400); }
+  const sessionId = String(body?.session_id || "").trim();
+  if (!/^[A-Za-z0-9_-]{8,120}$/.test(sessionId)) return json({ok:false,error:"Sessão inválida."},400);
+
+  const history = (Array.isArray(body?.history) ? body.history : []).slice(-100).map(item => ({
+    type: item?.type === "bot" ? "bot" : "user",
+    text: String(item?.text || "").slice(0,10000)
+  }));
+  const c = body?.context && typeof body.context === "object" ? body.context : {};
+  const record = {
+    sessionId,
+    clientName: String(c.nome || "").slice(0,120),
+    phone: String(c.telefone || "").slice(0,40),
+    email: String(c.email || "").slice(0,160),
+    service: String(c.servico || "").slice(0,200),
+    request: String(c.pedido || "").slice(0,1000),
+    status: body?.status === "human" ? "human" : "bot",
+    updatedAt: new Date().toISOString(),
+    history
+  };
+  await env.CONVERSATIONS.put("conversation:" + sessionId, JSON.stringify(record));
+  return json({ok:true,saved:true});
+}
+
+async function handleAdminConversations(request, env) {
+  if (!(await requireAdmin(request, env))) return json({ok:false,error:"Não autorizado."},401);
+  const listing = await env.CONVERSATIONS.list({prefix:"conversation:",limit:100});
+  const keys = listing.keys.map(x => x.name);
+  const values = keys.length ? await env.CONVERSATIONS.get(keys, "json") : new Map();
+  const conversations = [];
+  for (const key of keys) {
+    const item = values.get(key);
+    if (item) conversations.push(item);
+  }
+  conversations.sort((a,b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+  return json({ok:true,conversations,listComplete:listing.list_complete});
+}
+
+async function handleAdminConversation(request, env, sessionId) {
+  if (!(await requireAdmin(request, env))) return json({ok:false,error:"Não autorizado."},401);
+  const item = await env.CONVERSATIONS.get("conversation:" + sessionId, "json");
+  if (!item) return json({ok:false,error:"Conversa não encontrada."},404);
+  return json({ok:true,conversation:item});
+}
+
+// ============================================================
 // WORKER
 // ============================================================
 
@@ -1647,6 +1723,12 @@ async function fetchHandler(request) {
              process.env.GROQ_API_KEY.trim())
               ? process.env.GROQ_API_KEY.trim()
               : undefined,
+      ADMIN_PANEL_KEY:
+        (typeof globalThis.ADMIN_PANEL_KEY === "string" && globalThis.ADMIN_PANEL_KEY.trim())
+          ? globalThis.ADMIN_PANEL_KEY.trim()
+          : undefined,
+      CONVERSATIONS:
+        globalThis.CONVERSATIONS || undefined,
       ASSETS:
         globalThis.ASSETS || undefined
     };
@@ -1668,6 +1750,22 @@ async function fetchHandler(request) {
             "GET, POST, OPTIONS"
         }
       });
+    }
+
+    // --------------------------------------------------------
+    // PAINEL ADMINISTRATIVO
+    // --------------------------------------------------------
+    if (url.pathname === "/api/admin/login" && request.method === "POST") {
+      return handleAdminLogin(request, env);
+    }
+    if (url.pathname === "/api/conversations/save" && request.method === "POST") {
+      return handleSaveConversation(request, env);
+    }
+    if (url.pathname === "/api/admin/conversations" && request.method === "GET") {
+      return handleAdminConversations(request, env);
+    }
+    if (url.pathname.startsWith("/api/admin/conversations/") && request.method === "GET") {
+      return handleAdminConversation(request, env, decodeURIComponent(url.pathname.slice("/api/admin/conversations/".length)));
     }
 
     // --------------------------------------------------------
