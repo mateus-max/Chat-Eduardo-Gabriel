@@ -1275,8 +1275,8 @@ async function handleChat(request, env) {
 // WORKER
 // ============================================================
 
-export default {
-  async fetch(request, env) {
+async function fetchHandler(request) {
+    const env = globalThis;
     const url =
       new URL(request.url);
 
@@ -1343,4 +1343,8 @@ export default {
       }
     );
   }
-};
+}
+
+addEventListener("fetch", (event) => {
+  event.respondWith(fetchHandler(event.request));
+});
