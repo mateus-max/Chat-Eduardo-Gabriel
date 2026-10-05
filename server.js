@@ -1223,6 +1223,62 @@ async function askGroq(env, messages) {
 }
 
 // ============================================================
+// TRANSCRIÇÃO DE ÁUDIO — GROQ WHISPER
+// ============================================================
+
+async function transcribeAudio(env, request) {
+  if (!env.GROQ_API_KEY) {
+    throw new Error("O atendimento inteligente ainda não está configurado no Cloudflare: GROQ_API_KEY não foi encontrada.");
+  }
+
+  const incoming = await request.formData();
+  const audio = incoming.get("audio");
+
+  if (!(audio instanceof File)) {
+    throw new Error("Áudio não encontrado.");
+  }
+
+  if (audio.size > 12 * 1024 * 1024) {
+    throw new Error("O áudio é demasiado grande.");
+  }
+
+  const form = new FormData();
+  form.append("file", audio, audio.name || "voice.webm");
+  form.append("model", "whisper-large-v3-turbo");
+  form.append("response_format", "json");
+  form.append("language", "pt");
+
+  const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${env.GROQ_API_KEY}`
+    },
+    body: form
+  });
+
+  const raw = await response.text();
+  let data;
+
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    throw new Error(`Resposta inválida da transcrição: ${raw.slice(0, 500)}`);
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.error?.message || `Erro de transcrição HTTP ${response.status}`);
+  }
+
+  const transcript = String(data?.text || "").trim();
+
+  if (!transcript) {
+    throw new Error("Não foi possível compreender o conteúdo do áudio.");
+  }
+
+  return transcript;
+}
+
+// ============================================================
 // HEALTH
 // ============================================================
 
@@ -1529,6 +1585,29 @@ async function fetchHandler(request) {
       request.method === "GET"
     ) {
       return handleHealth(env);
+    }
+
+    // --------------------------------------------------------
+    // TRANSCRIÇÃO DE ÁUDIO
+    // --------------------------------------------------------
+
+    if (
+      url.pathname === "/api/transcribe" &&
+      request.method === "POST"
+    ) {
+      try {
+        const transcript = await transcribeAudio(env, request);
+        return json({
+          ok: true,
+          transcript
+        });
+      } catch (error) {
+        console.error("Erro de transcrição:", error);
+        return json({
+          ok: false,
+          error: error?.message || "Não foi possível transcrever o áudio."
+        }, 502);
+      }
     }
 
     // --------------------------------------------------------
