@@ -809,15 +809,15 @@ function showIntro(){
   }).format(new Date()).split(":")[0]);
 
   const horarioEduardo =
-    horaLuanda >= 8 && horaLuanda < 18
-      ? "O senhor Eduardo está disponível dentro do horário de atendimento."
-      : "O senhor Eduardo já encerrou o expediente por hoje. Ele estará novamente disponível amanhã, a partir das 8 horas.";
+    horaLuanda >= 19
+      ? "O senhor Eduardo encontra-se indisponível no momento. Assim que estiver disponível novamente, poderá responder com a maior brevidade possível."
+      : "";
 
   let intro = `${saudacao}
 
 Olá, seja muito bem-vindo(a)! 👋
 Sou a **Azny Gabriel, assistente virtual do senhor Eduardo**.
-${horarioEduardo} Estou disponível para prestar as primeiras informações, esclarecer as suas dúvidas e encaminhar o seu atendimento.
+${horarioEduardo ? horarioEduardo + " " : ""}Estou disponível para prestar as primeiras informações, esclarecer as suas dúvidas e encaminhar o seu atendimento.
 
 **Com quem tenho o prazer de falar?**`;
 
