@@ -1,5 +1,5 @@
 {
-  "name": "eduardo-chat-openai",
+  "name": "eduardo-chat-gemini",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -8,8 +8,8 @@
     "dev": "node --watch server.mjs"
   },
   "dependencies": {
+    "@google/genai": "latest",
     "dotenv": "^16.4.7",
-    "express": "^5.1.0",
-    "openai": "^6.0.0"
+    "express": "^5.1.0"
   }
 }
