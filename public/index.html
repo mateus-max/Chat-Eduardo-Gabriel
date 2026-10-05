@@ -588,6 +588,7 @@ async function processAttachment(file){
     add(data.reply,"bot");
     history.push({text:replyQuestion||"Analise o ficheiro enviado.",type:"user"});
     history.push({text:data.reply,type:"bot"});
+    queueConversationSave();
     if(data.quick_replies) quick(data.quick_replies);
   }catch(err){
     typingRow.remove();
@@ -883,6 +884,29 @@ function fmt(s){
 
 
 /* =========================================================
+   SINCRONIZAÇÃO COM O PAINEL ADMINISTRATIVO
+   ========================================================= */
+let conversationSaveTimer=null;
+async function saveConversationToAdmin(){
+  if(!API_BASE || !sessionId) return;
+  try{
+    await fetch(API_BASE+"/api/conversations/save",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        session_id:sessionId,
+        context:ctx,
+        history:history.slice(-100)
+      })
+    });
+  }catch{}
+}
+function queueConversationSave(){
+  clearTimeout(conversationSaveTimer);
+  conversationSaveTimer=setTimeout(saveConversationToAdmin,350);
+}
+
+/* =========================================================
    ADICIONAR MENSAGEM
    ========================================================= */
 
@@ -967,6 +991,7 @@ function add(text,type="bot"){
     text,
     type
   });
+  queueConversationSave();
 
 }
 
@@ -1289,9 +1314,11 @@ async function processVoiceMessage(blob){
 
     typingRow.remove();
     add(data.reply || "Desculpe, não consegui preparar a resposta agora.","bot");
+    if(data.clientName && !ctx.nome) ctx.nome=data.clientName;
 
     history.push({text:transcript,type:"user"});
     history.push({text:data.reply || "",type:"bot"});
+    queueConversationSave();
     if(data.quick_replies) quick(data.quick_replies);
     chat.scrollTop=chat.scrollHeight;
   }catch(err){
