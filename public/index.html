@@ -1274,6 +1274,7 @@ async function processVoiceMessage(blob){
         identificacao_cliente:tratamentoCliente(),
         instrucao_tratamento:"Trate o cliente de forma respeitosa como Senhor [Nome] ou Senhora [Nome]."
       },
+      document_context:activeDocumentContext,
       history:history.slice(-20)
     };
 
@@ -1390,6 +1391,8 @@ async function send(){
         "Trate o cliente de forma respeitosa como Senhor [Nome] ou Senhora [Nome] quando for natural. Não é necessário repetir o nome do cliente em todas as respostas; use o nome apenas quando contribuir para a naturalidade do atendimento."
 
     },
+
+    document_context: activeDocumentContext,
 
     history:
       history.slice(-20)
