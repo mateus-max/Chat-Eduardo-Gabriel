@@ -968,7 +968,7 @@ function buildMessages(history, currentMessage, systemPrompt) {
 async function askGroq(env, messages) {
   if (!env.GROQ_API_KEY) {
     throw new Error(
-      "GROQ_API_KEY não configurada."
+      "O atendimento inteligente ainda não está configurado no Cloudflare: GROQ_API_KEY não foi encontrada."
     );
   }
 
@@ -1033,7 +1033,10 @@ async function handleHealth(env) {
     provider: "Groq",
     model: MODEL,
     groqConfigured:
-      Boolean(env.GROQ_API_KEY),
+      Boolean(
+        env.GROQ_API_KEY &&
+        String(env.GROQ_API_KEY).trim()
+      ),
     time:
       new Date().toISOString()
   });
@@ -1282,11 +1285,18 @@ async function fetchHandler(request) {
     // Construímos um objeto "env" compatível com o restante do código.
     const env = {
       GROQ_API_KEY:
-        typeof GROQ_API_KEY !== "undefined"
-          ? GROQ_API_KEY
-          : undefined,
+        (typeof GROQ_API_KEY !== "undefined" &&
+         typeof GROQ_API_KEY === "string" &&
+         GROQ_API_KEY.trim())
+          ? GROQ_API_KEY.trim()
+          : (typeof process !== "undefined" &&
+             process.env &&
+             typeof process.env.GROQ_API_KEY === "string" &&
+             process.env.GROQ_API_KEY.trim())
+              ? process.env.GROQ_API_KEY.trim()
+              : undefined,
       ASSETS:
-        typeof ASSETS !== "undefined"
+        (typeof ASSETS !== "undefined" && ASSETS)
           ? ASSETS
           : undefined
     };
