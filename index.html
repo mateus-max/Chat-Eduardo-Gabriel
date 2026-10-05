@@ -352,12 +352,13 @@ document.getElementById("voiceBtn")?.addEventListener("click",async()=>{
     voiceChunks=[];
     mediaRecorder=new MediaRecorder(stream);
     mediaRecorder.ondataavailable=e=>{if(e.data.size) voiceChunks.push(e.data)};
-    mediaRecorder.onstop=()=>{
+    mediaRecorder.onstop=async()=>{
       stream.getTracks().forEach(t=>t.stop());
       const blob=new Blob(voiceChunks,{type:mediaRecorder.mimeType||"audio/webm"});
       const url=URL.createObjectURL(blob);
       addAudioMessage(url,"user");
       document.getElementById("voiceRecording").classList.remove("show");
+      await processVoiceMessage(blob);
     };
     mediaRecorder.start();
     document.getElementById("voiceRecording").classList.add("show");
@@ -985,6 +986,68 @@ function openEduardoWhatsApp(){
   window.open(EDUARDO_WHATSAPP_URL, "_blank", "noopener,noreferrer");
 }
 
+async function processVoiceMessage(blob){
+  const typingRow = typing();
+  try{
+    if(IS_LOCAL_FILE && !API_BASE){
+      throw new Error("O chat precisa de um backend publicado para transcrever mensagens de voz.");
+    }
+
+    const form = new FormData();
+    form.append("audio", blob, "voice.webm");
+
+    const tr = await fetch(`${API_BASE}/api/transcribe`, {
+      method:"POST",
+      body:form
+    });
+
+    const td = await tr.json().catch(()=>({}));
+    if(!tr.ok || !td.transcript){
+      throw new Error(td.error || "Não foi possível compreender o áudio.");
+    }
+
+    const transcript = td.transcript.trim();
+
+    const transcriptionRow = document.createElement("div");
+    transcriptionRow.className = "row user";
+    transcriptionRow.innerHTML = `<div class="mini-avatar"><span>C</span></div><div class="bubble-wrap"><div class="speaker">${esc(tratamentoCliente())}</div><div class="msg">🎙️ ${esc(transcript)}</div></div>`;
+    const chat = document.getElementById("chat");
+    chat.appendChild(transcriptionRow);
+
+    const payload = {
+      session_id:sessionId,
+      message:transcript,
+      context:{
+        ...ctx,
+        tratamento:detectarTratamento(nomeCliente()),
+        identificacao_cliente:tratamentoCliente(),
+        instrucao_tratamento:"Trate o cliente de forma respeitosa como Senhor [Nome] ou Senhora [Nome]."
+      },
+      history:history.slice(-20)
+    };
+
+    const ar = await fetch(`${API_BASE}/api/chat`, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(payload)
+    });
+
+    const data = await ar.json().catch(()=>({}));
+    if(!ar.ok) throw new Error(data.error || "Falha no atendimento.");
+
+    typingRow.remove();
+    add(data.reply || "Desculpe, não consegui preparar a resposta agora.","bot");
+
+    history.push({text:transcript,type:"user"});
+    history.push({text:data.reply || "",type:"bot"});
+    if(data.quick_replies) quick(data.quick_replies);
+    chat.scrollTop=chat.scrollHeight;
+  }catch(err){
+    typingRow.remove();
+    add(String(err?.message || "Não consegui compreender o áudio neste momento."),"bot");
+  }
+}
+
 /* =========================================================
    ENVIAR MENSAGEM
    ========================================================= */
@@ -1083,6 +1146,8 @@ async function send(){
   };
 
 
+  const typingRow = typing();
+
   try{
 
     if(
@@ -1131,10 +1196,12 @@ async function send(){
     }
 
 
-    say(
+    typingRow.remove();
+
+    add(
       data.reply ||
       "Desculpe, não consegui preparar a resposta agora.",
-      220
+      "bot"
     );
 
 
@@ -1155,6 +1222,8 @@ async function send(){
   }
 
   catch(err){
+
+    typingRow.remove();
 
     const msg =
       String(
