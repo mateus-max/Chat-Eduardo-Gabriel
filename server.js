@@ -1187,61 +1187,65 @@ function buildMessages(history, currentMessage, systemPrompt) {
 
 async function askGroq(env, messages) {
   if (!env.GROQ_API_KEY) {
-    throw new Error(
-      "O atendimento inteligente ainda não está configurado no Cloudflare: GROQ_API_KEY não foi encontrada."
-    );
+    throw new Error("IA_NOT_CONFIGURED");
   }
 
-  const response = await fetch(GROQ_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization":
-        `Bearer ${env.GROQ_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      messages,
-      temperature: 0.6,
-      max_completion_tokens: 1600,
-      top_p: 0.95,
-      reasoning_effort: "low",
-      stream: false
-    })
-  });
+  let lastError = null;
 
-  const raw = await response.text();
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const response = await fetch(GROQ_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${env.GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          messages,
+          temperature: 0.6,
+          max_completion_tokens: attempt === 1 ? 1800 : 3000,
+          top_p: 0.95,
+          reasoning_effort: "low",
+          stream: false
+        })
+      });
 
-  let data;
+      const raw = await response.text();
+      let data;
 
-  try {
-    data = JSON.parse(raw);
-  } catch {
-    throw new Error(
-      `Resposta inválida da Groq: ${raw.slice(0, 500)}`
-    );
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        throw new Error("INVALID_GROQ_RESPONSE");
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error?.message || `GROQ_HTTP_${response.status}`
+        );
+      }
+
+      const message = data?.choices?.[0]?.message || {};
+      const content = String(message.content || "").trim();
+
+      if (content) {
+        return content;
+      }
+
+      throw new Error("EMPTY_GROQ_CONTENT");
+    } catch (error) {
+      lastError = error;
+      console.error("Erro interno ao obter resposta da IA:", error);
+
+      if (attempt < 2) {
+        await new Promise(resolve => setTimeout(resolve, 350));
+      }
+    }
   }
 
-  if (!response.ok) {
-    const message =
-      data?.error?.message ||
-      `Erro Groq HTTP ${response.status}`;
-
-    throw new Error(message);
-  }
-
-  const message = data?.choices?.[0]?.message || {};
-  const content = message.content;
-
-  if (!content || !String(content).trim()) {
-    throw new Error(
-      "A Groq não devolveu uma resposta de texto. Tente novamente."
-    );
-  }
-
-  return String(content).trim();
+  throw lastError || new Error("AI_RESPONSE_FAILED");
 }
-
 
 // ============================================================
 // ANÁLISE DE IMAGENS / OCR — GROQ VISION
@@ -1594,10 +1598,7 @@ ${documentContext}
       {
         ok: false,
         error:
-          error?.message ||
-          "Não foi possível processar a mensagem neste momento.",
-        details:
-          error?.message || "Erro desconhecido"
+          "Peço desculpa, não foi possível processar a sua mensagem neste momento. Por favor, tente novamente."
       },
       502
     );
@@ -1817,7 +1818,7 @@ async function fetchHandler(request) {
         console.error("Erro de análise de imagem:", error);
         return json({
           ok: false,
-          error: error?.message || "Não foi possível analisar a imagem."
+          error: "Peço desculpa, não foi possível analisar a imagem neste momento. Por favor, tente novamente."
         }, 502);
       }
     }
@@ -1840,7 +1841,7 @@ async function fetchHandler(request) {
         console.error("Erro de transcrição:", error);
         return json({
           ok: false,
-          error: error?.message || "Não foi possível transcrever o áudio."
+          error: "Peço desculpa, não foi possível processar a mensagem de voz neste momento. Por favor, tente novamente."
         }, 502);
       }
     }
