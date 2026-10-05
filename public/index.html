@@ -64,6 +64,7 @@ body{
   height:100%;
   object-fit:cover;
   object-position:center 30%;
+  display:block;
 }
 
 .head strong{
@@ -309,7 +310,12 @@ body{
 <header class="head">
 
   <div class="avatar">
-    <img id="avatar" alt="Eduardo Gabriel">
+    <img
+      id="avatar"
+      src="/avatar.jpg"
+      alt="Eduardo Gabriel"
+      onerror="this.style.display='none';"
+    >
   </div>
 
   <div>
@@ -360,15 +366,11 @@ body{
 
 /* =====================================================
    FOTO DO EDUARDO
+   A imagem fica em:
+   public/avatar.jpg
 ===================================================== */
 
-const PHOTO = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASW5jLiAyMDA2";
-
-/*
-   A imagem original do projeto está incorporada no arquivo.
-   Se o navegador não conseguir carregar a foto incorporada,
-   o restante do chat continua funcionando normalmente.
-*/
+const PHOTO = "/avatar.jpg";
 
 
 /* =====================================================
@@ -420,7 +422,10 @@ let greeted = false;
    ELEMENTOS
 ===================================================== */
 
-document.getElementById("avatar").src = PHOTO;
+const avatarElement =
+  document.getElementById("avatar");
+
+avatarElement.src = PHOTO;
 
 document.getElementById("context").textContent =
   ctx.servico
@@ -496,8 +501,24 @@ function add(
 
   if(type === "bot"){
 
-    av.innerHTML =
-      `<img src="${PHOTO}" alt="Eduardo Gabriel">`;
+    const img =
+      document.createElement("img");
+
+    img.src =
+      PHOTO;
+
+    img.alt =
+      "Eduardo Gabriel";
+
+    img.onerror =
+      function(){
+
+        this.style.display =
+          "none";
+
+      };
+
+    av.appendChild(img);
 
   }
 
@@ -558,8 +579,19 @@ function add(
 
 
   history.push({
-    text,
-    type
+    role:
+      type === "bot"
+        ? "assistant"
+        : "user",
+
+    content:
+      text,
+
+    text:
+      text,
+
+    type:
+      type
   });
 
 }
@@ -589,8 +621,24 @@ function typing(){
     "mini-avatar";
 
 
-  av.innerHTML =
-    `<img src="${PHOTO}" alt="Eduardo Gabriel">`;
+  const img =
+    document.createElement("img");
+
+  img.src =
+    PHOTO;
+
+  img.alt =
+    "Eduardo Gabriel";
+
+  img.onerror =
+    function(){
+
+      this.style.display =
+        "none";
+
+    };
+
+  av.appendChild(img);
 
 
   const wrap =
@@ -721,12 +769,38 @@ function showIntro(){
   greeted = true;
 
 
-  let intro =
-`Olá${ctx.nome ? ", **" + ctx.nome + "**" : ""}! 👋
+  /*
+     Se o link já trouxe o nome do cliente,
+     mantém o comportamento atual.
+
+     Caso contrário, a mensagem inicial pede
+     o nome antes de continuar.
+  */
+
+  let intro;
+
+
+  if(ctx.nome){
+
+    intro =
+`Olá, **Sr. ${ctx.nome}**! 👋
 
 Sou o **Assistente Virtual do Eduardo Ngongoyove Gabriel**. Neste momento ele pode não estar disponível, mas estou aqui para prestar as primeiras informações e continuar o atendimento consigo.
 
 Pode conversar comigo normalmente. Não precisa repetir os dados que já informou.`;
+
+  }
+
+  else{
+
+    intro =
+`Olá! 👋
+
+Sou o **Assistente Virtual do Eduardo Ngongoyove Gabriel**.
+
+Antes de continuarmos, por favor, diga-me o seu nome.`;
+
+  }
 
 
   say(
@@ -737,7 +811,7 @@ Pode conversar comigo normalmente. Não precisa repetir os dados que já informo
 
   setTimeout(() => {
 
-    if(ctx.pedido){
+    if(ctx.nome && ctx.pedido){
 
       say(
 `Recebi o seu pedido inicial: **${ctx.pedido}**.
@@ -748,7 +822,7 @@ Pode continuar a partir daqui.`,
 
     }
 
-    else if(ctx.servico){
+    else if(ctx.nome && ctx.servico){
 
       say(
 `Entendi. O seu atendimento inicial está relacionado com **${ctx.servico}**.
@@ -762,21 +836,30 @@ Pode perguntar diretamente o que pretende saber sobre esse assunto.`,
   },600);
 
 
-  quick([
+  /*
+     Os botões rápidos só aparecem automaticamente
+     quando já existe nome.
+  */
 
-    "🏥 Consultas na Namíbia",
+  if(ctx.nome){
 
-    "💰 Consultar preços",
+    quick([
 
-    "💻 Websites",
+      "🏥 Consultas na Namíbia",
 
-    "📱 Redes sociais",
+      "💰 Consultar preços",
 
-    "🎵 Música",
+      "💻 Websites",
 
-    "👤 Falar com Eduardo"
+      "📱 Redes sociais",
 
-  ]);
+      "🎵 Música",
+
+      "👤 Falar com Eduardo"
+
+    ]);
+
+  }
 
 }
 
@@ -784,19 +867,6 @@ Pode perguntar diretamente o que pretende saber sobre esse assunto.`,
 /* =====================================================
    ENDEREÇO DO BACKEND
 ===================================================== */
-
-/*
-   Quando o frontend e backend estiverem no mesmo
-   serviço Render, pode ficar vazio.
-
-   Exemplo:
-
-   https://chat-eduardo-gabriel.onrender.com
-
-   também pode ser passado no endereço:
-
-   ?api=https://chat-eduardo-gabriel.onrender.com
-*/
 
 const queryApi =
   new URLSearchParams(
@@ -965,7 +1035,7 @@ async function send(){
     ){
 
       friendly =
-        "O servidor está online, mas a chave da OpenAI ainda não está configurada corretamente.";
+        "O servidor está online, mas a chave da IA ainda não está configurada corretamente.";
 
     }
 
@@ -1078,4 +1148,4 @@ showIntro();
 </script>
 
 </body>
-  </html>
+</html>
