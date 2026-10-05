@@ -150,7 +150,7 @@ function extractNameFromText(text, previousHistory = []) {
 
   // Formas naturais de apresentação do próprio cliente.
   // Ex.: "Falas com o senhor Emiliano" ou "Está a falar com a senhora Maria".
-  const presentedMatch = value.match(/^\s*(?:fala|fale|falas|falo|está a falar|estão a falar|estou a falar|aqui fala)\s+(?:com\s+)?(?:o\s+|a\s+)?(?:sr\.?|senhor|sra\.?|senhora)\s+(.+)$/i);
+  const presentedMatch = value.match(/^\s*(?:fala|fale|falas|falo|está a falar|estão a falar|estou a falar|aqui fala)\s+(?:com\s+)?(?:o\s+|a\s+)?(?:(?:sr\.?|senhor|sra\.?|senhora)\s+)?(.+)$/i);
 
   if (presentedMatch) {
     const name = cleanName(presentedMatch[1]);
