@@ -193,6 +193,20 @@ body{
   border-top:1px solid var(--border)
 }
 
+.composer-tools{display:flex;align-items:center;gap:6px;padding:8px 0 0}
+.composer-tools button{width:38px;height:38px;border:0;border-radius:50%;background:#eef3f8;color:#0b2a4a;font-size:19px;cursor:pointer}
+.composer-tools button:hover{background:#dfe8f1}
+.emoji-panel{display:none;position:absolute;bottom:74px;left:14px;background:#fff;border:1px solid #d8e0e8;border-radius:14px;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,.14);z-index:20;max-width:330px}
+.emoji-panel.open{display:flex;flex-wrap:wrap;gap:4px}
+.emoji-panel button{border:0;background:transparent;font-size:23px;padding:5px;cursor:pointer;border-radius:8px}
+.emoji-panel button:hover{background:#eef3f8}
+.composer{position:relative}
+.file-preview{display:none;padding:7px 10px;margin-bottom:6px;border-radius:10px;background:#eef3f8;font-size:13px}
+.file-preview.show{display:block}
+.voice-recording{display:none;align-items:center;gap:8px;padding:7px 10px;margin-bottom:6px;border-radius:10px;background:#fff0f0;color:#9b1c1c}
+.voice-recording.show{display:flex}
+.msg-actions{display:flex;gap:4px;margin-top:4px;opacity:.72}
+.msg-actions button{border:0;background:transparent;cursor:pointer;font-size:13px;padding:2px 5px}
 .composer input{
   flex:1;
   border:1px solid #cbd7e4;
@@ -286,13 +300,17 @@ body{
 <div id="quick" class="quick"></div>
 
 <div class="composer">
-  <input
-    id="input"
-    autocomplete="off"
-    placeholder="Escreva a sua mensagem..."
-  >
-
-  <button id="send" aria-label="Enviar">➤</button>
+  <div id="emojiPanel" class="emoji-panel"></div>
+  <div id="filePreview" class="file-preview"></div>
+  <div id="voiceRecording" class="voice-recording">🔴 A gravar mensagem de voz… <button id="stopVoice" type="button">Parar</button></div>
+  <div class="composer-tools">
+    <button id="emojiBtn" type="button" aria-label="Emoji">😊</button>
+    <button id="attachBtn" type="button" aria-label="Anexar">📎</button>
+    <input id="fileInput" type="file" hidden multiple>
+    <button id="voiceBtn" type="button" aria-label="Mensagem de voz">🎙️</button>
+    <input id="input" autocomplete="off" placeholder="Escreva a sua mensagem..." style="flex:1">
+    <button id="send" aria-label="Enviar">➤</button>
+  </div>
 </div>
 
 <div class="notice">
@@ -303,6 +321,60 @@ body{
 </div>
 
 <script>
+
+/* =========================================================
+   FUNCIONALIDADES DE CHAT
+   ========================================================= */
+const EMOJIS=["😀","😂","😍","😊","🙏","👍","❤️","👏","🎉","😄","😅","🤝","👌","🔥","💙","😎","🤔","😢","😮","🎵","📌","✅"];
+const emojiPanel=document.getElementById("emojiPanel");
+const inputEl=document.getElementById("input");
+if(emojiPanel){
+  EMOJIS.forEach(e=>{
+    const b=document.createElement("button"); b.type="button"; b.textContent=e;
+    b.onclick=()=>{ inputEl.value+=e; inputEl.focus(); };
+    emojiPanel.appendChild(b);
+  });
+}
+document.getElementById("emojiBtn")?.addEventListener("click",()=>emojiPanel.classList.toggle("open"));
+document.getElementById("attachBtn")?.addEventListener("click",()=>document.getElementById("fileInput").click());
+document.getElementById("fileInput")?.addEventListener("change",e=>{
+  const files=[...e.target.files];
+  if(!files.length) return;
+  const box=document.getElementById("filePreview");
+  box.textContent="📎 "+files.map(f=>f.name).join(" • ");
+  box.classList.add("show");
+});
+let mediaRecorder=null, voiceChunks=[];
+document.getElementById("voiceBtn")?.addEventListener("click",async()=>{
+  if(mediaRecorder?.state==="recording") return;
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    voiceChunks=[];
+    mediaRecorder=new MediaRecorder(stream);
+    mediaRecorder.ondataavailable=e=>{if(e.data.size) voiceChunks.push(e.data)};
+    mediaRecorder.onstop=()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      const blob=new Blob(voiceChunks,{type:mediaRecorder.mimeType||"audio/webm"});
+      const url=URL.createObjectURL(blob);
+      addAudioMessage(url,"user");
+      document.getElementById("voiceRecording").classList.remove("show");
+    };
+    mediaRecorder.start();
+    document.getElementById("voiceRecording").classList.add("show");
+  }catch{
+    alert("Não foi possível aceder ao microfone. Verifique a permissão do navegador.");
+  }
+});
+document.getElementById("stopVoice")?.addEventListener("click",()=>mediaRecorder?.stop());
+function addAudioMessage(url,type="user"){
+  const chat=document.getElementById("chat");
+  const row=document.createElement("div"); row.className="row "+type;
+  const av=document.createElement("div"); av.className="mini-avatar"; av.innerHTML=type==="bot"?`<img src="${PHOTO}" alt="Azny Gabriel">`:"<span>C</span>";
+  const wrap=document.createElement("div"); wrap.className="bubble-wrap";
+  const speaker=document.createElement("div"); speaker.className="speaker"; speaker.textContent=type==="bot"?"Azny Gabriel":tratamentoCliente();
+  const msg=document.createElement("div"); msg.className="msg"; msg.innerHTML=`<audio controls src="${url}"></audio>`;
+  wrap.append(speaker,msg); row.append(av,wrap); chat.appendChild(row); chat.scrollTop=chat.scrollHeight;
+}
 
 /* =========================================================
    FOTO DO SENHOR EDUARDO
