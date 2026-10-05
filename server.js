@@ -1285,10 +1285,9 @@ async function fetchHandler(request) {
     // Construímos um objeto "env" compatível com o restante do código.
     const env = {
       GROQ_API_KEY:
-        (typeof GROQ_API_KEY !== "undefined" &&
-         typeof GROQ_API_KEY === "string" &&
-         GROQ_API_KEY.trim())
-          ? GROQ_API_KEY.trim()
+        (typeof globalThis.GROQ_API_KEY === "string" &&
+         globalThis.GROQ_API_KEY.trim())
+          ? globalThis.GROQ_API_KEY.trim()
           : (typeof process !== "undefined" &&
              process.env &&
              typeof process.env.GROQ_API_KEY === "string" &&
@@ -1296,9 +1295,7 @@ async function fetchHandler(request) {
               ? process.env.GROQ_API_KEY.trim()
               : undefined,
       ASSETS:
-        (typeof ASSETS !== "undefined" && ASSETS)
-          ? ASSETS
-          : undefined
+        globalThis.ASSETS || undefined
     };
     const url =
       new URL(request.url);
