@@ -1356,7 +1356,6 @@ async function fetchHandler(request) {
       }
     );
   }
-}
 
 addEventListener("fetch", (event) => {
   event.respondWith(fetchHandler(event.request));
