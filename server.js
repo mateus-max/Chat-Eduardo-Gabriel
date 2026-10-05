@@ -837,6 +837,28 @@ Sempre manter tratamento formal.
 `;
 
 // ============================================================
+// HORÁRIO DO SENHOR EDUARDO — LUANDA
+// Atendimento: 08:00 às 18:00
+// ============================================================
+
+function horarioSenhorEduardo() {
+  const parts = new Intl.DateTimeFormat("pt-AO", {
+    timeZone: "Africa/Luanda",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(new Date());
+
+  const hour = Number(parts.find((p) => p.type === "hour")?.value || 0);
+
+  if (hour >= 8 && hour < 18) {
+    return "O senhor Eduardo está dentro do horário de atendimento (08:00 às 18:00).";
+  }
+
+  return "O senhor Eduardo já encerrou o expediente por hoje. Ele estará novamente disponível amanhã, a partir das 8 horas.";
+}
+
+// ============================================================
 // INSTRUÇÃO DINÂMICA
 // ============================================================
 
@@ -873,6 +895,8 @@ Use somente:
 Não faça outra pergunta nesse momento.
 `;
 
+  const horarioText = horarioSenhorEduardo();
+
   const contextText =
     context && Object.keys(context).length
       ? `
@@ -890,6 +914,11 @@ Você é Azny Gabriel, assistente virtual do Sr. Eduardo Ngongoyove Gabriel.
 ${identity}
 
 ${contextText}
+
+HORÁRIO E DISPONIBILIDADE DO SENHOR EDUARDO:
+${horarioText}
+
+Se o cliente perguntar pelo senhor Eduardo, quiser falar com ele ou pedir atendimento direto com ele, respeite rigorosamente o horário acima. Fora do horário, informe de forma natural que o senhor Eduardo já encerrou o expediente e estará novamente disponível amanhã, a partir das 8 horas. Mesmo fora do horário, continue disponível para prestar as primeiras informações, esclarecer dúvidas e encaminhar o atendimento. Não invente outro horário.
 
 ${KNOWLEDGE_BASE}
 
