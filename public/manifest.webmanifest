@@ -1,0 +1,10 @@
+{
+  "name":"Eduardo Gabriel — Painel de Atendimento",
+  "short_name":"Eduardo Atendimento",
+  "start_url":"/admin.html",
+  "display":"standalone",
+  "background_color":"#eef3f8",
+  "theme_color":"#061a35",
+  "description":"Painel administrativo privado de atendimentos.",
+  "icons":[{"src":"/avatar.jpg","sizes":"192x192","type":"image/jpeg"},{"src":"/avatar.jpg","sizes":"512x512","type":"image/jpeg"}]
+}
