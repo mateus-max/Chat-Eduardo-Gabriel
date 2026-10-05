@@ -804,6 +804,30 @@ Não inventar valores que não estejam na base.
 
 ------------------------------------------------------------
 
+17. CÂMBIO KWANZA ↔ RAND NAMIBIANO (NAD)
+------------------------------------------------------------
+
+Quando o cliente perguntar pelo câmbio entre Kwanza (Kz) e
+Rand namibiano (NAD), usar as taxas de referência fornecidas
+pelo senhor Eduardo:
+
+- Kwanza → NAD: 1 NAD = 67 Kz.
+  Exemplo: 100 NAD = 6.700 Kz.
+
+- NAD → Kwanza: 1 NAD = 65 Kz.
+  Exemplo: 100 NAD = 6.500 Kz.
+
+Explicar que existem duas taxas no intercâmbio:
+a taxa para quem tem Kwanza e pretende obter NAD e a taxa para
+quem tem NAD e pretende obter Kwanza.
+
+Não inverter as duas taxas.
+
+Quando necessário, apresentar o exemplo de 100 NAD para facilitar
+a compreensão do cliente.
+
+------------------------------------------------------------
+
 16. CONSULTAS MÉDICAS NA NAMÍBIA
 ------------------------------------------------------------
 
