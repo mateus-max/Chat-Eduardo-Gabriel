@@ -1219,6 +1219,7 @@ async function handleChat(request, env) {
       {
         ok: false,
         error:
+          error?.message ||
           "Não foi possível processar a mensagem neste momento.",
         details:
           error?.message || "Erro desconhecido"
