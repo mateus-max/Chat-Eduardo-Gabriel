@@ -1,15 +1,12 @@
 {
-  "name": "eduardo-chat-gemini",
-  "version": "1.0.0",
+  "name": "chat-eduardo-gabriel",
+  "version": "2.0.0",
   "private": true,
-  "type": "module",
   "scripts": {
-    "start": "node server.mjs",
-    "dev": "node --watch server.mjs"
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
   },
-  "dependencies": {
-    "@google/genai": "latest",
-    "dotenv": "^16.4.7",
-    "express": "^5.1.0"
+  "devDependencies": {
+    "wrangler": "latest"
   }
 }
