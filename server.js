@@ -840,7 +840,7 @@ pelo senhor Eduardo:
 
 Exemplos:
 - 60 NAD = 4.020 Kz.
-- 440 NAD = 29.480 Kz.
+- 400 NAD = 26.800 Kz.
 - 450 NAD = 30.150 Kz.
 
 Quando o cliente perguntar especificamente pelos valores destes
@@ -917,22 +917,22 @@ OSHIKANGO → WINDHOEK — BILHETE
 - Macon: 400 NAD.
 - Ndapuka: 450 NAD.
 
-Se o cliente perguntar "quanto custa o bilhete de Chicago para
+Se o cliente perguntar "quanto custa o bilhete de Oshikango para
 Windhoek?", apresentar as duas opções e os respetivos valores.
 
 Equivalência em kwanzas, usando 1 NAD = 67 Kz:
 - Macon: 400 NAD = 26.800 Kz.
 - Ndapuka: 450 NAD = 30.150 Kz.
 
-CHICAGO → OSHAKATI — TÁXI / CARRO PEQUENO
+OSHIKANGO → OSHAKATI — TÁXI / CARRO PEQUENO
 
 - 60 NAD.
 
-CHICAGO → ONDANGWA — TÁXI / CARRO PEQUENO
+OSHIKANGO → ONDANGWA — TÁXI / CARRO PEQUENO
 
 - 60 NAD.
 
-CHICAGO → ONGWEDIVA — TÁXI / CARRO PEQUENO
+OSHIKANGO → ONGWEDIVA — TÁXI / CARRO PEQUENO
 
 - 60 NAD.
 
@@ -944,7 +944,7 @@ REGRAS DE RESPOSTA:
 - Se perguntarem em kwanzas, mostrar diretamente a equivalência em Kz.
 - Se perguntarem apenas "quanto custa?", informar o valor em NAD e,
   entre parênteses, a equivalência em Kz.
-- Não confundir o bilhete Chicago → Windhoek com o táxi para Oshakati,
+- Não confundir o bilhete Oshikango → Windhoek com o táxi para Oshakati,
   Ondangwa ou Ongwediva.
 - "Ndapuka" deve ser escrito corretamente como Ndapuka.
 - Não enviar o cliente ao Portal de Suporte Técnico para estes valores
