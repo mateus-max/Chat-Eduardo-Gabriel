@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="description" content="Chat Virtual do Assistente Eduardo Ngongoyove Gabriel">
+<title>Chat Virtual | Eduardo Gabriel</title>
+
+<style>
+:root{
+  --navy:#061a35;
+  --navy2:#0c2e59;
+  --muted:#65758b;
+  --border:#d9e3ee;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:linear-gradient(135deg,#e8eff6,#fff);
+  color:#172033;
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.app{
+  width:min(1000px,100%);
+  height:min(820px,100vh);
+  background:#fff;
+  box-shadow:0 20px 70px rgba(7,26,53,.18);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+.head{
+  background:linear-gradient(120deg,var(--navy),var(--navy2));
+  color:#fff;
+  padding:12px 18px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.avatar{
+  width:54px;
+  height:54px;
+  border-radius:50%;
+  overflow:hidden;
+  flex:none;
+  border:2px solid rgba(255,255,255,.85);
+  background:#fff;
+}
+
+.avatar img,
+.mini-avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center 30%;
+}
+
+.head strong{
+  display:block;
+  font-size:16px;
+}
+
+.online{
+  display:block;
+  font-size:12px;
+  color:#bcecff;
+  margin-top:2px;
+}
+
+.context{
+  margin-left:auto;
+  font-size:11px;
+  color:#d7e9fb;
+  text-align:right;
+  max-width:330px;
+}
+
+.chat{
+  flex:1;
+  overflow:auto;
+  padding:18px;
+  background:#f4f7fa;
+}
+
+.row{
+  display:flex;
+  gap:9px;
+  align-items:flex-end;
+  margin:12px 0;
+  max-width:94%;
+}
+
+.row.user{
+  margin-left:auto;
+  flex-direction:row-reverse;
+}
+
+.mini-avatar{
+  width:32px;
+  height:32px;
+  border-radius:50%;
+  overflow:hidden;
+  flex:none;
+  background:#dbe7f3;
+  display:grid;
+  place-items:center;
+  font-size:12px;
+  font-weight:800;
+  color:var(--navy);
+  border:1px solid #cbd9e8;
+}
+
+.bubble-wrap{
+  min-width:0;
+}
+
+.speaker{
+  font-size:11px;
+  font-weight:800;
+  color:#617287;
+  margin:0 0 4px 6px;
+}
+
+.row.user .speaker{
+  text-align:right;
+  margin-right:6px;
+}
+
+.msg{
+  padding:12px 15px;
+  border-radius:17px;
+  white-space:normal;
+  line-height:1.55;
+  font-size:14px;
+  box-shadow:0 2px 8px rgba(7,26,53,.045);
+  overflow-wrap:anywhere;
+}
+
+.bot .msg{
+  background:#fff;
+  border:1px solid var(--border);
+  border-top-left-radius:5px;
+}
+
+.user .msg{
+  background:var(--navy);
+  color:#fff;
+  border-top-right-radius:5px;
+}
+
+.msg a{
+  color:#075bb4;
+  text-decoration:underline;
+  font-weight:800;
+}
+
+.portal-link{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  margin-top:10px;
+  padding:9px 12px;
+  border-radius:11px;
+  background:#eaf4ff;
+  color:#075bb4!important;
+  text-decoration:none!important;
+  border:1px solid #c9def3;
+  font-weight:900!important;
+}
+
+.quick{
+  padding:9px 12px;
+  background:#fff;
+  border-top:1px solid var(--border);
+  display:flex;
+  gap:8px;
+  overflow:auto;
+  min-height:58px;
+}
+
+.quick button{
+  white-space:nowrap;
+  border:1px solid #cbd9e7;
+  background:#fff;
+  color:var(--navy);
+  border-radius:20px;
+  padding:8px 12px;
+  cursor:pointer;
+  font-weight:800;
+}
+
+.composer{
+  display:flex;
+  gap:9px;
+  padding:11px;
+  background:#fff;
+  border-top:1px solid var(--border);
+}
+
+.composer input{
+  flex:1;
+  border:1px solid #cbd7e4;
+  border-radius:25px;
+  padding:13px 16px;
+  outline:0;
+  font-size:14px;
+}
+
+.composer button{
+  border:0;
+  border-radius:50%;
+  width:46px;
+  height:46px;
+  background:var(--navy);
+  color:#fff;
+  font-size:18px;
+  cursor:pointer;
+}
+
+.typing{
+  display:inline-flex;
+  gap:4px;
+  padding:12px 15px;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:16px;
+}
+
+.typing i{
+  width:6px;
+  height:6px;
+  background:#9aa8b8;
+  border-radius:50%;
+  animation:b 1s infinite;
+}
+
+.typing i:nth-child(2){
+  animation-delay:.15s;
+}
+
+.typing i:nth-child(3){
+  animation-delay:.3s;
+}
+
+@keyframes b{
+  50%{
+    transform:translateY(-3px);
+    opacity:.4;
+  }
+}
+
+.notice{
+  font-size:11px;
+  color:var(--muted);
+  text-align:center;
+  padding:7px;
+  background:#f8fafc;
+}
+
+@media(max-width:650px){
+
+  body{
+    display:block;
+  }
+
+  .app{
+    height:100vh;
+  }
+
+  .head{
+    padding:11px 13px;
+  }
+
+  .context{
+    display:none;
+  }
+
+  .chat{
+    padding:12px 9px;
+  }
+
+  .row{
+    max-width:97%;
+  }
+
+  .msg{
+    font-size:14px;
+  }
+
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header class="head">
+
+  <div class="avatar">
+    <img id="avatar" alt="Eduardo Gabriel">
+  </div>
+
+  <div>
+    <strong>Assistente Virtual — Eduardo Gabriel</strong>
+    <span class="online">● Atendimento virtual disponível</span>
+  </div>
+
+  <div id="context" class="context">
+    Conversa geral
+  </div>
+
+</header>
+
+
+<main id="chat" class="chat"></main>
+
+
+<div id="quick" class="quick"></div>
+
+
+<div class="composer">
+
+  <input
+    id="input"
+    autocomplete="off"
+    placeholder="Escreva a sua mensagem..."
+  >
+
+  <button
+    id="send"
+    aria-label="Enviar"
+  >
+    ➤
+  </button>
+
+</div>
+
+
+<div class="notice">
+  As informações sobre os serviços são orientadas pelos índices e portais do Eduardo Gabriel.
+  Quando for necessária intervenção humana, o atendimento poderá ser encaminhado para Eduardo.
+</div>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+   FOTO DO EDUARDO
+===================================================== */
+
+const PHOTO = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASW5jLiAyMDA2";
+
+/*
+   A imagem original do projeto está incorporada no arquivo.
+   Se o navegador não conseguir carregar a foto incorporada,
+   o restante do chat continua funcionando normalmente.
+*/
+
+
+/* =====================================================
+   DADOS RECEBIDOS DO LINK
+===================================================== */
+
+const q = new URLSearchParams(location.search);
+
+const ctx = {
+
+  nome:
+    q.get("nome") || "",
+
+  telefone:
+    q.get("telefone") || "",
+
+  email:
+    q.get("email") || "",
+
+  servico:
+    q.get("servico") || "",
+
+  pedido:
+    q.get("pedido") || ""
+
+};
+
+
+/* =====================================================
+   SESSÃO DA CONVERSA
+===================================================== */
+
+const sessionId =
+  q.get("session") ||
+  (
+    window.crypto &&
+    crypto.randomUUID
+      ? crypto.randomUUID()
+      : "sessao-" + Date.now()
+  );
+
+
+let history = [];
+
+let greeted = false;
+
+
+/* =====================================================
+   ELEMENTOS
+===================================================== */
+
+document.getElementById("avatar").src = PHOTO;
+
+document.getElementById("context").textContent =
+  ctx.servico
+    ? `Atendimento: ${ctx.servico}`
+    : "Conversa geral";
+
+
+/* =====================================================
+   SEGURANÇA DE TEXTO
+===================================================== */
+
+function esc(s){
+
+  return String(s ?? "")
+    .replace(/[&<>"]/g, m => {
+
+      if(m === "&") return "&amp;";
+      if(m === "<") return "&lt;";
+      if(m === ">") return "&gt;";
+      return "&quot;";
+
+    });
+
+}
+
+
+/* =====================================================
+   FORMATAÇÃO DA MENSAGEM
+===================================================== */
+
+function fmt(s){
+
+  return esc(s)
+
+    .replace(
+      /\*\*(.*?)\*\*/g,
+      "<strong>$1</strong>"
+    )
+
+    .replace(
+      /\n/g,
+      "<br>"
+    );
+
+}
+
+
+/* =====================================================
+   ADICIONAR MENSAGEM
+===================================================== */
+
+function add(
+  text,
+  type = "bot"
+){
+
+  const chat =
+    document.getElementById("chat");
+
+  const row =
+    document.createElement("div");
+
+  row.className =
+    "row " + type;
+
+
+  const av =
+    document.createElement("div");
+
+  av.className =
+    "mini-avatar";
+
+
+  if(type === "bot"){
+
+    av.innerHTML =
+      `<img src="${PHOTO}" alt="Eduardo Gabriel">`;
+
+  }
+
+  else{
+
+    av.innerHTML =
+      "<span>C</span>";
+
+  }
+
+
+  const wrap =
+    document.createElement("div");
+
+  wrap.className =
+    "bubble-wrap";
+
+
+  const speaker =
+    document.createElement("div");
+
+  speaker.className =
+    "speaker";
+
+
+  speaker.textContent =
+    type === "bot"
+
+      ? "Assistente Virtual — Eduardo Gabriel"
+
+      : `Cliente${ctx.nome ? " — " + ctx.nome : ""}`;
+
+
+  const msg =
+    document.createElement("div");
+
+  msg.className =
+    "msg";
+
+  msg.innerHTML =
+    fmt(text);
+
+
+  wrap.append(
+    speaker,
+    msg
+  );
+
+  row.append(
+    av,
+    wrap
+  );
+
+  chat.appendChild(row);
+
+  chat.scrollTop =
+    chat.scrollHeight;
+
+
+  history.push({
+    text,
+    type
+  });
+
+}
+
+
+/* =====================================================
+   ANIMAÇÃO "A RESPONDER"
+===================================================== */
+
+function typing(){
+
+  const chat =
+    document.getElementById("chat");
+
+
+  const row =
+    document.createElement("div");
+
+  row.className =
+    "row bot";
+
+
+  const av =
+    document.createElement("div");
+
+  av.className =
+    "mini-avatar";
+
+
+  av.innerHTML =
+    `<img src="${PHOTO}" alt="Eduardo Gabriel">`;
+
+
+  const wrap =
+    document.createElement("div");
+
+  wrap.className =
+    "bubble-wrap";
+
+
+  const speaker =
+    document.createElement("div");
+
+  speaker.className =
+    "speaker";
+
+  speaker.textContent =
+    "Assistente Virtual — Eduardo Gabriel";
+
+
+  const t =
+    document.createElement("div");
+
+  t.className =
+    "typing";
+
+  t.innerHTML =
+    "<i></i><i></i><i></i>";
+
+
+  wrap.append(
+    speaker,
+    t
+  );
+
+  row.append(
+    av,
+    wrap
+  );
+
+  chat.appendChild(row);
+
+  chat.scrollTop =
+    chat.scrollHeight;
+
+
+  return row;
+
+}
+
+
+/* =====================================================
+   FALAR
+===================================================== */
+
+function say(
+  text,
+  delay = 220
+){
+
+  const t =
+    typing();
+
+
+  setTimeout(() => {
+
+    t.remove();
+
+    add(
+      text,
+      "bot"
+    );
+
+  }, delay);
+
+}
+
+
+/* =====================================================
+   BOTÕES RÁPIDOS
+===================================================== */
+
+function quick(items){
+
+  const el =
+    document.getElementById("quick");
+
+
+  el.innerHTML = "";
+
+
+  items.forEach(x => {
+
+    const b =
+      document.createElement("button");
+
+    b.textContent =
+      x;
+
+
+    b.onclick = () => {
+
+      document.getElementById(
+        "input"
+      ).value = x;
+
+      send();
+
+    };
+
+
+    el.appendChild(b);
+
+  });
+
+}
+
+
+/* =====================================================
+   MENSAGEM INICIAL
+===================================================== */
+
+function showIntro(){
+
+  if(greeted)
+    return;
+
+
+  greeted = true;
+
+
+  let intro =
+`Olá${ctx.nome ? ", **" + ctx.nome + "**" : ""}! 👋
+
+Sou o **Assistente Virtual do Eduardo Ngongoyove Gabriel**. Neste momento ele pode não estar disponível, mas estou aqui para prestar as primeiras informações e continuar o atendimento consigo.
+
+Pode conversar comigo normalmente. Não precisa repetir os dados que já informou.`;
+
+
+  say(
+    intro,
+    250
+  );
+
+
+  setTimeout(() => {
+
+    if(ctx.pedido){
+
+      say(
+`Recebi o seu pedido inicial: **${ctx.pedido}**.
+
+Pode continuar a partir daqui.`,
+        220
+      );
+
+    }
+
+    else if(ctx.servico){
+
+      say(
+`Entendi. O seu atendimento inicial está relacionado com **${ctx.servico}**.
+
+Pode perguntar diretamente o que pretende saber sobre esse assunto.`,
+        220
+      );
+
+    }
+
+  },600);
+
+
+  quick([
+
+    "🏥 Consultas na Namíbia",
+
+    "💰 Consultar preços",
+
+    "💻 Websites",
+
+    "📱 Redes sociais",
+
+    "🎵 Música",
+
+    "👤 Falar com Eduardo"
+
+  ]);
+
+}
+
+
+/* =====================================================
+   ENDEREÇO DO BACKEND
+===================================================== */
+
+/*
+   Quando o frontend e backend estiverem no mesmo
+   serviço Render, pode ficar vazio.
+
+   Exemplo:
+
+   https://chat-eduardo-gabriel.onrender.com
+
+   também pode ser passado no endereço:
+
+   ?api=https://chat-eduardo-gabriel.onrender.com
+*/
+
+const queryApi =
+  new URLSearchParams(
+    location.search
+  ).get("api") || "";
+
+
+const API_BASE =
+  (
+    queryApi ||
+    window.EDUARDO_API_URL ||
+    ""
+  ).replace(/\/$/, "");
+
+
+const IS_LOCAL_FILE =
+  location.protocol === "file:" ||
+  location.protocol === "content:";
+
+
+/* =====================================================
+   ENVIAR MENSAGEM
+===================================================== */
+
+async function send(){
+
+  const input =
+    document.getElementById("input");
+
+
+  const text =
+    input.value.trim();
+
+
+  if(!text)
+    return;
+
+
+  add(
+    text,
+    "user"
+  );
+
+
+  input.value = "";
+
+
+  quick([]);
+
+
+  const payload = {
+
+    session_id:
+      sessionId,
+
+    message:
+      text,
+
+    context:
+      ctx,
+
+    history:
+      history.slice(-20)
+
+  };
+
+
+  try{
+
+    if(
+      IS_LOCAL_FILE &&
+      !API_BASE
+    ){
+
+      throw new Error(
+        "O index.html foi aberto diretamente como ficheiro. Publique o backend e abra o endereço do chat, ou informe a URL do backend com ?api=https://SEU-BACKEND."
+      );
+
+    }
+
+
+    const response =
+      await fetch(
+        `${API_BASE}/api/chat`,
+        {
+
+          method:"POST",
+
+          headers:{
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify(payload)
+
+        }
+      );
+
+
+    const data =
+      await response
+        .json()
+        .catch(
+          () => ({})
+        );
+
+
+    if(!response.ok){
+
+      throw new Error(
+        data.error ||
+        `Falha no atendimento (HTTP ${response.status}).`
+      );
+
+    }
+
+
+    say(
+      data.reply ||
+      "Desculpe, não consegui preparar a resposta agora.",
+      220
+    );
+
+
+    if(data.quick_replies){
+
+      quick(
+        data.quick_replies
+      );
+
+    }
+
+
+    if(data.context_label){
+
+      document.getElementById(
+        "context"
+      ).textContent =
+        data.context_label;
+
+    }
+
+  }
+
+
+  catch(err){
+
+    const msg =
+      String(
+        err?.message || ""
+      );
+
+
+    let friendly =
+      "Neste momento não consegui ligar ao atendimento inteligente.";
+
+
+    if(
+      msg.includes(
+        "não foi aceite"
+      ) ||
+      msg.includes(
+        "chave da OpenAI"
+      )
+    ){
+
+      friendly =
+        "O servidor está online, mas a chave da OpenAI ainda não está configurada corretamente.";
+
+    }
+
+
+    else if(
+      msg.includes(
+        "modelo configurado"
+      )
+    ){
+
+      friendly =
+        "O servidor está online, mas o modelo de IA configurado não está disponível para este projeto.";
+
+    }
+
+
+    else if(
+      msg.includes(
+        "limite de utilização"
+      )
+    ){
+
+      friendly =
+        "O atendimento inteligente atingiu temporariamente o limite de utilização. Tente novamente em instantes.";
+
+    }
+
+
+    else if(
+      msg.includes(
+        "O index.html foi aberto diretamente"
+      )
+    ){
+
+      friendly =
+        "Este ficheiro HTML foi aberto diretamente no telefone. Para a IA funcionar, o chat precisa estar ligado ao backend online.";
+
+    }
+
+
+    else if(
+      msg.includes(
+        "Failed to fetch"
+      ) ||
+      msg.includes(
+        "NetworkError"
+      )
+    ){
+
+      friendly =
+        "Não consegui contactar o servidor do atendimento inteligente. Verifique se o backend está online e se a URL configurada está correta.";
+
+    }
+
+
+    say(
+`${friendly}
+
+${msg && !msg.includes("HTTP")
+  ? msg
+  : "Tente novamente daqui a pouco."}`,
+      220
+    );
+
+
+    console.error(
+      err
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   EVENTOS
+===================================================== */
+
+document
+  .getElementById("send")
+  .onclick = send;
+
+
+document
+  .getElementById("input")
+  .addEventListener(
+    "keydown",
+    e => {
+
+      if(
+        e.key === "Enter"
+      ){
+
+        e.preventDefault();
+
+        send();
+
+      }
+
+    }
+  );
+
+
+/* =====================================================
+   INICIAR CHAT
+===================================================== */
+
+showIntro();
+
+</script>
+
+</body>
+  </html>
