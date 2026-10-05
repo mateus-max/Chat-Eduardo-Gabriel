@@ -415,6 +415,29 @@ function findKnownClientName(context, history, currentMessage) {
     return foundCurrent;
   }
 
+  // Resposta simples ao pedido de nome, por exemplo apenas "Paulo".
+  // Não depende de o modelo interpretar a mensagem.
+  const normalizedCurrent = String(currentMessage || "").replace(/\s+/g, " ").trim();
+  const lastAssistant = [...history]
+    .reverse()
+    .find(item => item.role === "assistant");
+
+  const assistantAskedName =
+    !!lastAssistant &&
+    /diga-me o seu nome|qual é o seu nome|qual e o seu nome|para continuarmos.*nome/i.test(
+      String(lastAssistant.content || "")
+    );
+
+  if (
+    assistantAskedName &&
+    /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{1,60}$/.test(normalizedCurrent) &&
+    normalizedCurrent.split(/\s+/).length <= 5 &&
+    !looksLikeServiceRequest(normalizedCurrent) &&
+    !/^(olá|ola|oi|sim|não|nao|obrigado|obrigada|por favor|quanto|preço|preco|valor)$/i.test(normalizedCurrent)
+  ) {
+    return cleanName(normalizedCurrent);
+  }
+
   return "";
 }
 
