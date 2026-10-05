@@ -8,6 +8,7 @@ const GROQ_URL =
   "https://api.groq.com/openai/v1/chat/completions";
 
 const MODEL = "openai/gpt-oss-20b";
+const VISION_MODEL = "qwen/qwen3.8-27b";
 
 // ============================================================
 // CONFIGURAÇÃO
@@ -1222,6 +1223,77 @@ async function askGroq(env, messages) {
   return String(content).trim();
 }
 
+
+// ============================================================
+// ANÁLISE DE IMAGENS / OCR — GROQ VISION
+// ============================================================
+
+async function analyzeImage(env, payload) {
+  if (!env.GROQ_API_KEY) {
+    throw new Error("O atendimento inteligente ainda não está configurado no Cloudflare: GROQ_API_KEY não foi encontrada.");
+  }
+
+  const image = typeof payload?.image === "string" ? payload.image : "";
+  const question = typeof payload?.question === "string" && payload.question.trim()
+    ? payload.question.trim()
+    : "Analise esta imagem com atenção. Leia o texto que estiver visível, identifique os elementos importantes e explique claramente o conteúdo. Se for um documento, extraia as informações relevantes.";
+
+  if (!/^data:image\/(?:jpeg|jpg|png|webp|gif);base64,/i.test(image)) {
+    throw new Error("A imagem enviada não está num formato suportado.");
+  }
+
+  if (image.length > 20 * 1024 * 1024) {
+    throw new Error("A imagem é demasiado grande. Reduza o tamanho e tente novamente.");
+  }
+
+  const response = await fetch(GROQ_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${env.GROQ_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: VISION_MODEL,
+      messages: [
+        {
+          role: "system",
+          content: "Você é Azny Gabriel, assistente virtual do Sr. Eduardo Ngongoyove Gabriel. Analise imagens com precisão. Leia documentos e textos visíveis sem inventar informações. Se algo estiver ilegível, diga claramente. Responda no idioma usado pelo cliente."
+        },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: question },
+            { type: "image_url", image_url: { url: image } }
+          ]
+        }
+      ],
+      temperature: 0.2,
+      max_completion_tokens: 1800,
+      top_p: 0.9,
+      stream: false
+    })
+  });
+
+  const raw = await response.text();
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    throw new Error(`Resposta inválida da análise de imagem: ${raw.slice(0, 500)}`);
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.error?.message || `Erro de análise de imagem HTTP ${response.status}`);
+  }
+
+  const text = String(data?.choices?.[0]?.message?.content || "").trim();
+  if (!text) {
+    throw new Error("A IA não conseguiu obter conteúdo legível da imagem.");
+  }
+
+  return text;
+}
+
 // ============================================================
 // TRANSCRIÇÃO DE ÁUDIO — GROQ WHISPER
 // ============================================================
@@ -1369,6 +1441,11 @@ async function handleChat(request, env) {
       ? body.context
       : {};
 
+  const documentContext =
+    typeof body.document_context === "string"
+      ? body.document_context.trim().slice(0, 70000)
+      : "";
+
   const history =
     normalizeHistory(body.history);
 
@@ -1441,13 +1518,30 @@ async function handleChat(request, env) {
   // SYSTEM PROMPT
   // ----------------------------------------------------------
 
-  const systemPrompt =
+  let systemPrompt =
     buildSystemPrompt({
       clientName,
       clientTitle: localizedTitle,
       context,
       language
     });
+
+  if (documentContext) {
+    systemPrompt += `
+
+------------------------------------------------------------
+DOCUMENTO / IMAGEM ATUAL DO CLIENTE
+------------------------------------------------------------
+
+O cliente enviou um ficheiro que deve permanecer no contexto
+da conversa. Use o conteúdo abaixo para responder às perguntas
+seguintes sobre esse mesmo ficheiro. Não invente dados que não
+estejam no conteúdo. Se a informação não estiver disponível,
+diga isso claramente.
+
+${documentContext}
+`;
+  }
 
   // ----------------------------------------------------------
   // CONVERSA
@@ -1585,6 +1679,30 @@ async function fetchHandler(request) {
       request.method === "GET"
     ) {
       return handleHealth(env);
+    }
+
+    // --------------------------------------------------------
+    // ANÁLISE DE IMAGEM / DOCUMENTO VISUAL
+    // --------------------------------------------------------
+
+    if (
+      url.pathname === "/api/analyze-image" &&
+      request.method === "POST"
+    ) {
+      try {
+        const payload = await request.json();
+        const analysis = await analyzeImage(env, payload);
+        return json({
+          ok: true,
+          analysis
+        });
+      } catch (error) {
+        console.error("Erro de análise de imagem:", error);
+        return json({
+          ok: false,
+          error: error?.message || "Não foi possível analisar a imagem."
+        }, 502);
+      }
     }
 
     // --------------------------------------------------------
