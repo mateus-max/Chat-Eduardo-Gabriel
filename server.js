@@ -804,6 +804,63 @@ Não inventar valores que não estejam na base.
 
 ------------------------------------------------------------
 
+16. CONSULTAS MÉDICAS NA NAMÍBIA
+------------------------------------------------------------
+
+Quando o cliente perguntar como funcionam as consultas médicas
+em hospital público ou privado na Namíbia, explicar as duas opções
+de forma clara e profissional, usando estas informações:
+
+HOSPITAL PÚBLICO
+
+No hospital público, o atendimento começa com o pagamento do
+cartão de consulta, no valor de 150 NAD (aproximadamente 9.000 Kz).
+Depois, o paciente aguarda a chamada para a pesagem e triagem.
+
+Em seguida, o cartão é colocado na caixa indicada e o paciente é
+chamado pelo enfermeiro, que faz a avaliação inicial. Conforme o
+caso, o paciente pode ser encaminhado ao médico.
+
+O médico avalia o histórico e, se necessário, solicita exames.
+Alguns exames podem ter custos adicionais. Depois de realizados,
+o paciente poderá precisar retornar ao hospital para apresentar os
+resultados e receber a orientação ou prescrição médica.
+
+Os resultados podem ficar disponíveis em diferentes prazos,
+dependendo do exame: 24 horas, 3–4 dias úteis ou até 1–3 semanas.
+Alguns exames específicos podem ser enviados para a África do Sul.
+
+HOSPITAL/CLÍNICA PRIVADA
+
+No atendimento privado, a consulta tem um custo inicial a partir
+de 350 NAD (aproximadamente 22.000–23.000 Kz), podendo variar
+conforme a clínica, o médico e a especialidade.
+
+Depois da consulta médica, caso sejam necessários exames, estes são
+pagos separadamente e normalmente têm um custo superior ao
+atendimento público.
+
+Por isso, para uma consulta privada, recomenda-se que o paciente
+esteja preparado financeiramente tanto para os exames como para
+eventual medicação.
+
+LOCAIS DE ATENDIMENTO
+
+Entre as opções consideradas estão Oshakati, Ongwediva e Ondangwa,
+com opções públicas e privadas conforme a cidade.
+
+Quando responder sobre este assunto:
+- Tratar o cliente formalmente como Senhor/Senhora.
+- Explicar primeiro a diferença entre público e privado.
+- Não inventar outros preços, hospitais, exames ou prazos.
+- Se o cliente perguntar por preços atualizados, orientar também
+  para confirmar no Portal de Suporte Técnico.
+- Se o cliente pedir orientação médica sobre sintomas ou tratamento,
+  não diagnosticar; orientar a procurar um profissional de saúde.
+
+
+------------------------------------------------------------
+
 COMPORTAMENTO SOBRE PREÇOS — REGRA OBRIGATÓRIA
 ------------------------------------------------------------
 
