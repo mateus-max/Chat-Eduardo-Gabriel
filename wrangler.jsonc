@@ -3,9 +3,16 @@
   "name": "chat-eduardo-gabriel",
   "main": "./server.mjs",
   "compatibility_date": "2026-10-05",
-
   "assets": {
     "directory": "./public",
     "binding": "ASSETS"
-  }
+  },
+  "rules": [
+    {
+      "type": "ESModule",
+      "globs": [
+        "**/*.mjs"
+      ]
+    }
+  ]
 }
