@@ -1,5 +1,6 @@
 // ============================================================
 // CHAT VIRTUAL — SR. EDUARDO NGONGOYOVE GABRIEL
+// Deployment refresh: 2026-10-05
 // Backend Cloudflare Worker + Groq
 // ============================================================
 
