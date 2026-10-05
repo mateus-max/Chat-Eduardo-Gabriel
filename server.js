@@ -209,6 +209,18 @@ function extractNameFromText(text, previousHistory = []) {
     /^(?:eu\s+)?sou\s+(?:(?:o|a)\s+)?(?:(?:sr\.?|senhor|sra\.?|senhora)\s+)?(.+)$/i
   );
 
+  if (match) {
+    const name = cleanName(match[1]);
+
+    if (
+      name &&
+      name.split(/\s+/).length <= 5 &&
+      !looksLikeServiceRequest(name)
+    ) {
+      return name;
+    }
+  }
+
   // ----------------------------------------------------------
   // "Sr. João"
   // "Senhor João"
@@ -223,7 +235,11 @@ function extractNameFromText(text, previousHistory = []) {
   if (match) {
     const name = cleanName(match[1]);
 
-    if (name) {
+    if (
+      name &&
+      name.split(/\s+/).length <= 5 &&
+      !looksLikeServiceRequest(name)
+    ) {
       return name;
     }
   }
