@@ -503,46 +503,30 @@ Depois de descobrir o nome, manter esse tratamento durante toda a conversa.
 
 ------------------------------------------------------------
 
-FLUXO OBRIGATÓRIO
+ATENDIMENTO NATURAL
 ------------------------------------------------------------
 
-PRIMEIRO CONTACTO:
+O atendimento deve ser conduzido principalmente pela IA, usando
+o histórico da conversa e os dados já fornecidos pelo cliente.
 
-Antes de falar sobre preços, serviços, cursos, websites,
-Namíbia, tradução ou qualquer outro assunto de atendimento,
-é obrigatório obter o nome do cliente.
+Se o cliente já informou o nome, reconheça-o e use o tratamento
+formal adequado. Não peça o nome novamente.
 
-Perguntar de forma natural:
+Se o cliente ainda não informou o nome, a IA pode pedi-lo de forma
+natural quando isso for útil para personalizar o atendimento, mas
+não deve bloquear a resposta à pergunta atual nem reiniciar a conversa.
 
-"Antes de continuarmos, por favor, diga-me o seu nome."
+Exemplos de apresentação:
+- "Meu nome é João."
+- "Eu sou o senhor João."
+- "Falas com a senhora Maria."
+- "Aqui fala Pedro."
 
-Não fazer várias perguntas nessa primeira resposta.
+Reconheça essas apresentações pelo contexto e continue a conversa
+normalmente.
 
-Se o cliente disser:
-
-"João"
-
-passar a tratá-lo como:
-
-"Sr. João"
-
-Se disser:
-
-"Meu nome é João Manuel"
-
-usar:
-
-"Sr. João Manuel"
-
-Se disser:
-
-"Sou a senhora Maria"
-
-usar:
-
-"Sra. Maria"
-
-Depois de obter o nome, continuar normalmente.
+A prioridade é responder ao que o cliente acabou de perguntar,
+mantendo o contexto e evitando perguntas repetidas.
 
 ------------------------------------------------------------
 
@@ -1068,20 +1052,12 @@ IMPORTANTE:
       : `
 CLIENTE AINDA NÃO IDENTIFICADO.
 
-REGRA ABSOLUTA:
-Antes de falar sobre serviços, preços ou qualquer assunto
-de atendimento, peça o nome do cliente.
+O cliente ainda não informou o nome. Se for útil para o atendimento,
+peça-o de forma natural e uma única vez. Não bloqueie a resposta
+à questão atual apenas por falta do nome.
 
-Use somente:
-
-"Com quem tenho o prazer de falar?"
-
-Não faça outra pergunta nesse momento.
-
-Depois que o cliente disser o nome, responda naturalmente, por exemplo:
-"É um prazer falar consigo, Sr. [Nome]. Em que posso ser útil?"
-ou
-"É um prazer falar consigo, Sra. [Nome]. Em que posso ajudá-la?"
+Se o cliente já se apresentou na mensagem atual ou no histórico,
+use essa informação e continue normalmente.
 `;
 
   const horarioText = horarioSenhorEduardo();
@@ -1162,13 +1138,16 @@ REGRAS CRÍTICAS:
 
 IMPORTANTE SOBRE O NOME:
 
-Se CLIENTE AINDA NÃO IDENTIFICADO:
-a única coisa que deve fazer é pedir o nome.
+Se o nome estiver disponível, use-o com tratamento formal.
 
-Se CLIENTE IDENTIFICADO:
-continue o atendimento normalmente e use o tratamento correto.
+Se ainda não estiver disponível, a IA deve decidir naturalmente
+se é necessário pedir o nome ou se deve responder primeiro à
+questão apresentada.
 
-A conversa deve parecer um atendimento humano real.
+Nunca peça novamente um nome que já foi informado.
+
+A conversa deve parecer um atendimento humano real, sem respostas
+pré-programadas desnecessárias.
 `;
 }
 
@@ -1209,102 +1188,44 @@ function buildMessages(history, currentMessage, systemPrompt) {
 // ============================================================
 
 async function askGroq(env, messages) {
-  const apiKey =
-    env.GROQ_API_KEY ||
-    env.GROQ_API_TOKEN ||
-    env.GROQ_KEY;
+  const apiKey = String(env.GROQ_API_KEY || "").trim();
 
   if (!apiKey) {
     throw new Error("IA_NOT_CONFIGURED");
   }
 
-  // Mantemos dois modelos de produção como redundância.
-  // Se um deles falhar por capacidade, limite ou configuração,
-  // o segundo pode assumir sem alterar a conversa do cliente.
-  const models = [
-    {
-      id: "openai/gpt-oss-20b",
-      max_completion_tokens: 1800
+  const response = await fetch(GROQ_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`
     },
-    {
-      id: "openai/gpt-oss-120b",
-      max_completion_tokens: 2200
-    }
-  ];
+    body: JSON.stringify({
+      model: MODEL,
+      messages,
+      temperature: 0.7,
+      max_completion_tokens: 2000,
+      top_p: 0.95,
+      stream: false
+    })
+  });
 
-  let lastError = null;
-
-  for (const model of models) {
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        const response = await fetch(GROQ_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`
-          },
-          body: JSON.stringify({
-            model: model.id,
-            messages,
-            temperature: 0.6,
-            max_completion_tokens: model.max_completion_tokens,
-            top_p: 0.95,
-            reasoning_effort: "low",
-            reasoning_format: "hidden",
-            stream: false
-          })
-        });
-
-        const raw = await response.text();
-
-        let data;
-        try {
-          data = JSON.parse(raw);
-        } catch {
-          throw new Error("INVALID_GROQ_RESPONSE");
-        }
-
-        if (!response.ok) {
-          const providerMessage =
-            data?.error?.message ||
-            `GROQ_HTTP_${response.status}`;
-
-          throw new Error(providerMessage);
-        }
-
-        const content =
-          String(
-            data?.choices?.[0]?.message?.content ||
-            ""
-          ).trim();
-
-        if (content) {
-          return content;
-        }
-
-        throw new Error("EMPTY_GROQ_CONTENT");
-      } catch (error) {
-        lastError = error;
-
-        console.error(
-          "Falha interna da IA",
-          JSON.stringify({
-            model: model.id,
-            attempt,
-            error: String(error?.message || error)
-          })
-        );
-
-        if (attempt < 2) {
-          await new Promise(resolve =>
-            setTimeout(resolve, 500)
-          );
-        }
-      }
-    }
+  if (!response.ok) {
+    console.error("Falha interna da IA:", response.status);
+    throw new Error("GROQ_REQUEST_FAILED");
   }
 
-  throw lastError || new Error("AI_RESPONSE_FAILED");
+  const data = await response.json();
+  const content = String(
+    data?.choices?.[0]?.message?.content || ""
+  ).trim();
+
+  if (!content) {
+    console.error("Falha interna da IA: resposta vazia");
+    throw new Error("EMPTY_GROQ_CONTENT");
+  }
+
+  return content;
 }
 
 // ============================================================
@@ -1598,320 +1519,3 @@ ${documentContext}
 
   // ----------------------------------------------------------
   // CONVERSA
-  // ----------------------------------------------------------
-
-  const messages =
-    buildMessages(
-      history,
-      message,
-      systemPrompt
-    );
-
-  // ----------------------------------------------------------
-  // GROQ
-  // ----------------------------------------------------------
-
-  let reply;
-
-  try {
-    reply = await askGroq(
-      env,
-      messages
-    );
-  } catch (error) {
-    console.error(
-      "Erro Groq:",
-      error
-    );
-
-    return json(
-      {
-        ok: false,
-        error:
-          "Peço desculpa, não foi possível processar a sua mensagem neste momento. Por favor, tente novamente."
-      },
-      502
-    );
-  }
-
-  // ----------------------------------------------------------
-  // SEGURANÇA DO TRATAMENTO
-  // ----------------------------------------------------------
-
-  // Se o modelo tentar chamar o cliente apenas pelo nome,
-  // reforçamos o tratamento no início da resposta.
-  //
-  // Não fazemos substituição cega em todo o texto porque
-  // poderia alterar nomes de empresas, documentos etc.
-
-  const lowerReply =
-    reply.toLowerCase();
-
-  const lowerName =
-    clientName.toLowerCase();
-
-  const startsWithBareName =
-    lowerReply.startsWith(
-      lowerName + ","
-    ) ||
-    lowerReply.startsWith(
-      lowerName + " "
-    ) ||
-    lowerReply === lowerName;
-
-  if (startsWithBareName) {
-    reply =
-      `${formalName}, ${reply.slice(clientName.length).trim()}`;
-  }
-
-  // ----------------------------------------------------------
-  // RESPOSTA
-  // ----------------------------------------------------------
-
-  return json({
-    ok: true,
-    reply,
-    clientName,
-    clientTitle: effectiveTitle,
-    formalName,
-    identified: true
-  });
-}
-
-// ============================================================
-// PAINEL ADMINISTRATIVO — CONVERSAS
-// ============================================================
-
-function getAdminToken(request) {
-  return (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
-}
-
-async function requireAdmin(request, env) {
-  if (!env.CONVERSATIONS || !env.ADMIN_PANEL_KEY) return false;
-  const token = getAdminToken(request);
-  if (!token) return false;
-  return (await env.CONVERSATIONS.get("admin:session:" + token)) === "1";
-}
-
-async function handleAdminLogin(request, env) {
-  if (!env.CONVERSATIONS || !env.ADMIN_PANEL_KEY) {
-    return json({ok:false,error:"O painel ainda não foi configurado no Cloudflare."},503);
-  }
-  let body;
-  try { body = await request.json(); } catch { return json({ok:false,error:"Pedido inválido."},400); }
-  const key = typeof body?.key === "string" ? body.key.trim() : "";
-  if (!key || key !== env.ADMIN_PANEL_KEY) return json({ok:false,error:"Código administrativo incorreto."},401);
-  const token = crypto.randomUUID() + "-" + crypto.randomUUID();
-  await env.CONVERSATIONS.put("admin:session:" + token, "1", {expirationTtl:604800});
-  return json({ok:true,token});
-}
-
-async function handleSaveConversation(request, env) {
-  if (!env.CONVERSATIONS) return json({ok:false,error:"Armazenamento ainda não configurado."},503);
-  let body;
-  try { body = await request.json(); } catch { return json({ok:false,error:"Pedido inválido."},400); }
-  const sessionId = String(body?.session_id || "").trim();
-  if (!/^[A-Za-z0-9_-]{8,120}$/.test(sessionId)) return json({ok:false,error:"Sessão inválida."},400);
-
-  const history = (Array.isArray(body?.history) ? body.history : []).slice(-100).map(item => ({
-    type: item?.type === "bot" ? "bot" : "user",
-    text: String(item?.text || "").slice(0,10000)
-  }));
-  const c = body?.context && typeof body.context === "object" ? body.context : {};
-  const record = {
-    sessionId,
-    clientName: String(c.nome || "").slice(0,120),
-    phone: String(c.telefone || "").slice(0,40),
-    email: String(c.email || "").slice(0,160),
-    service: String(c.servico || "").slice(0,200),
-    request: String(c.pedido || "").slice(0,1000),
-    status: body?.status === "human" ? "human" : "bot",
-    updatedAt: new Date().toISOString(),
-    history
-  };
-  await env.CONVERSATIONS.put("conversation:" + sessionId, JSON.stringify(record));
-  return json({ok:true,saved:true});
-}
-
-async function handleAdminConversations(request, env) {
-  if (!(await requireAdmin(request, env))) return json({ok:false,error:"Não autorizado."},401);
-  const listing = await env.CONVERSATIONS.list({prefix:"conversation:",limit:100});
-  const keys = listing.keys.map(x => x.name);
-  const values = keys.length ? await env.CONVERSATIONS.get(keys, "json") : new Map();
-  const conversations = [];
-  for (const key of keys) {
-    const item = values.get(key);
-    if (item) conversations.push(item);
-  }
-  conversations.sort((a,b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
-  return json({ok:true,conversations,listComplete:listing.list_complete});
-}
-
-async function handleAdminConversation(request, env, sessionId) {
-  if (!(await requireAdmin(request, env))) return json({ok:false,error:"Não autorizado."},401);
-  const item = await env.CONVERSATIONS.get("conversation:" + sessionId, "json");
-  if (!item) return json({ok:false,error:"Conversa não encontrada."},404);
-  return json({ok:true,conversation:item});
-}
-
-// ============================================================
-// WORKER
-// ============================================================
-
-async function fetchHandler(request) {
-    // No formato Service Worker do Cloudflare, os bindings
-    // (Secrets, Vars e Assets) ficam disponíveis como globais.
-    // Construímos um objeto "env" compatível com o restante do código.
-    const env = {
-      GROQ_API_KEY:
-        (typeof globalThis.GROQ_API_KEY === "string" &&
-         globalThis.GROQ_API_KEY.trim())
-          ? globalThis.GROQ_API_KEY.trim()
-          : (typeof process !== "undefined" &&
-             process.env &&
-             typeof process.env.GROQ_API_KEY === "string" &&
-             process.env.GROQ_API_KEY.trim())
-              ? process.env.GROQ_API_KEY.trim()
-              : undefined,
-      ADMIN_PANEL_KEY:
-        (typeof globalThis.ADMIN_PANEL_KEY === "string" && globalThis.ADMIN_PANEL_KEY.trim())
-          ? globalThis.ADMIN_PANEL_KEY.trim()
-          : undefined,
-      CONVERSATIONS:
-        globalThis.CONVERSATIONS || undefined,
-      ASSETS:
-        globalThis.ASSETS || undefined
-    };
-    const url =
-      new URL(request.url);
-
-    // --------------------------------------------------------
-    // OPTIONS / CORS
-    // --------------------------------------------------------
-
-    if (request.method === "OPTIONS") {
-      return new Response(null, {
-        status: 204,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers":
-            "Content-Type",
-          "Access-Control-Allow-Methods":
-            "GET, POST, OPTIONS"
-        }
-      });
-    }
-
-    // --------------------------------------------------------
-    // PAINEL ADMINISTRATIVO
-    // --------------------------------------------------------
-    if (url.pathname === "/api/admin/login" && request.method === "POST") {
-      return handleAdminLogin(request, env);
-    }
-    if (url.pathname === "/api/conversations/save" && request.method === "POST") {
-      return handleSaveConversation(request, env);
-    }
-    if (url.pathname === "/api/admin/conversations" && request.method === "GET") {
-      return handleAdminConversations(request, env);
-    }
-    if (url.pathname.startsWith("/api/admin/conversations/") && request.method === "GET") {
-      return handleAdminConversation(request, env, decodeURIComponent(url.pathname.slice("/api/admin/conversations/".length)));
-    }
-
-    // --------------------------------------------------------
-    // HEALTH
-    // --------------------------------------------------------
-
-    if (
-      url.pathname === "/health" &&
-      request.method === "GET"
-    ) {
-      return handleHealth(env);
-    }
-
-    // --------------------------------------------------------
-    // ANÁLISE DE IMAGEM / DOCUMENTO VISUAL
-    // --------------------------------------------------------
-
-    if (
-      url.pathname === "/api/analyze-image" &&
-      request.method === "POST"
-    ) {
-      try {
-        const payload = await request.json();
-        const analysis = await analyzeImage(env, payload);
-        return json({
-          ok: true,
-          analysis
-        });
-      } catch (error) {
-        console.error("Erro de análise de imagem:", error);
-        return json({
-          ok: false,
-          error: "Peço desculpa, não foi possível analisar a imagem neste momento. Por favor, tente novamente."
-        }, 502);
-      }
-    }
-
-    // --------------------------------------------------------
-    // TRANSCRIÇÃO DE ÁUDIO
-    // --------------------------------------------------------
-
-    if (
-      url.pathname === "/api/transcribe" &&
-      request.method === "POST"
-    ) {
-      try {
-        const transcript = await transcribeAudio(env, request);
-        return json({
-          ok: true,
-          transcript
-        });
-      } catch (error) {
-        console.error("Erro de transcrição:", error);
-        return json({
-          ok: false,
-          error: "Peço desculpa, não foi possível processar a mensagem de voz neste momento. Por favor, tente novamente."
-        }, 502);
-      }
-    }
-
-    // --------------------------------------------------------
-    // CHAT
-    // --------------------------------------------------------
-
-    if (
-      url.pathname === "/api/chat" &&
-      request.method === "POST"
-    ) {
-      return handleChat(
-        request,
-        env
-      );
-    }
-
-    // --------------------------------------------------------
-    // ASSETS
-    // --------------------------------------------------------
-
-    if (env.ASSETS) {
-      return env.ASSETS.fetch(
-        request
-      );
-    }
-
-    return new Response(
-      "Chat Virtual — Sr. Eduardo Ngongoyove Gabriel",
-      {
-        status: 404,
-        headers: {
-          "Content-Type":
-            "text/plain; charset=UTF-8"
-        }
-      }
-    );
-  }
-
-addEventListener("fetch", (event) => {
-  event.respondWith(fetchHandler(event.request));
-});
