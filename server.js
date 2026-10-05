@@ -147,6 +147,31 @@ function extractNameFromText(text, previousHistory = []) {
     .replace(/\s+/g, " ")
     .trim();
 
+  // NUNCA considerar como nome do cliente o nome de outra
+  // pessoa mencionada na mensagem.
+  // Exemplos:
+  // "falas com sr Emiliano"
+  // "quero falar com o senhor João"
+  // "procuro a senhora Maria"
+  // "pode chamar o Eduardo?"
+  //
+  // Nesses casos, o nome pertence à pessoa procurada,
+  // não necessariamente a quem está a conversar com a Azny.
+  if (
+    /\b(?:fale|fala|falas|falar|falei|contactar|contatar|procuro|procura|quero falar|gostaria de falar|chamar|chama|preciso falar|posso falar|quero contactar|quero contatar)\b[\s\S]*\b(?:sr\.?|senhor|sra\.?|senhora)\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]*/i.test(value)
+    ||
+    /\b(?:com|ao|a|para)\s+(?:o\s+|a\s+)?(?:sr\.?|senhor|sra\.?|senhora)\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]*/i.test(value)
+  ) {
+    return null;
+  }
+
+  // Frases que falam explicitamente de outra pessoa.
+  if (
+    /\b(?:senhor|senhora|sr\.?|sra\.?)\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]*\b[\s\S]*\b(?:ele|ela|dele|dela|com ele|com ela|falar com|contactar|contatar)\b/i.test(value)
+  ) {
+    return null;
+  }
+
   // ----------------------------------------------------------
   // "Meu nome é João"
   // "Meu nome e João"
