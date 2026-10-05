@@ -838,11 +838,13 @@ function quick(items){
 
 
     b.onclick = () => {
+      if(x === "📞 Chamar Eduardo"){
+        openEduardoWhatsApp();
+        return;
+      }
 
       document.getElementById("input").value = x;
-
       send();
-
     };
 
 
@@ -939,7 +941,7 @@ Pode perguntar diretamente o que pretende saber sobre esse assunto.`,
 
     "🎵 Música",
 
-    "👤 Falar com Eduardo"
+    "📞 Chamar Eduardo"
 
   ]);
 
@@ -969,6 +971,21 @@ const IS_LOCAL_FILE =
 
 
 /* =========================================================
+   CONTACTO OFICIAL DO SENHOR EDUARDO
+   ========================================================= */
+const EDUARDO_WHATSAPP_URL = "https://wa.me/244931057760";
+
+function isCallRequest(text){
+  const value = String(text || "");
+  return /(?:ligar|ligue|chamar|telefonar|fazer uma chamada|fazer chamada|call|phone|ring|speak to|talk to)/i.test(value)
+    && /(?:eduardo|senhor eduardo|mr\.?\s*eduardo)/i.test(value);
+}
+
+function openEduardoWhatsApp(){
+  window.open(EDUARDO_WHATSAPP_URL, "_blank", "noopener,noreferrer");
+}
+
+/* =========================================================
    ENVIAR MENSAGEM
    ========================================================= */
 
@@ -995,6 +1012,18 @@ async function send(){
   input.value = "";
 
   quick([]);
+
+  if(isCallRequest(text)){
+    const isEnglish = /\b(call|phone|ring|speak to|talk to)\b/i.test(text);
+    say(
+      isEnglish
+        ? "I’m opening the official WhatsApp contact for Mr. Eduardo now."
+        : "Vou abrir agora o WhatsApp oficial do Sr. Eduardo.",
+      180
+    );
+    openEduardoWhatsApp();
+    return;
+  }
 
 
   /*
