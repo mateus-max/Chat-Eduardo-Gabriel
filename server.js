@@ -1276,7 +1276,19 @@ async function handleChat(request, env) {
 // ============================================================
 
 async function fetchHandler(request) {
-    const env = globalThis;
+    // No formato Service Worker do Cloudflare, os bindings
+    // (Secrets, Vars e Assets) ficam disponíveis como globais.
+    // Construímos um objeto "env" compatível com o restante do código.
+    const env = {
+      GROQ_API_KEY:
+        typeof GROQ_API_KEY !== "undefined"
+          ? GROQ_API_KEY
+          : undefined,
+      ASSETS:
+        typeof ASSETS !== "undefined"
+          ? ASSETS
+          : undefined
+    };
     const url =
       new URL(request.url);
 
