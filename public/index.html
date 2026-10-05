@@ -366,18 +366,52 @@ body{
 
 /* =====================================================
    FOTO DO EDUARDO
-   A imagem fica em:
-   public/avatar.jpg
+   Caminhos aceites:
+   /avatar.jpg
+   /assets/avatar.jpg
 ===================================================== */
 
-const PHOTO = "/avatar.jpg";
+const PHOTO_CANDIDATES = [
+  "/avatar.jpg",
+  "./avatar.jpg",
+  "/assets/avatar.jpg",
+  "./assets/avatar.jpg"
+];
+
+let photoIndex = 0;
+
+function setPhoto(img){
+  if(!img) return;
+
+  img.src = PHOTO_CANDIDATES[photoIndex];
+
+  img.onerror = function(){
+
+    photoIndex++;
+
+    if(photoIndex < PHOTO_CANDIDATES.length){
+
+      this.src =
+        PHOTO_CANDIDATES[photoIndex];
+
+    }else{
+
+      this.style.display =
+        "none";
+
+    }
+
+  };
+}
 
 
 /* =====================================================
    DADOS RECEBIDOS DO LINK
 ===================================================== */
 
-const q = new URLSearchParams(location.search);
+const q =
+  new URLSearchParams(location.search);
+
 
 const ctx = {
 
@@ -394,9 +428,175 @@ const ctx = {
     q.get("servico") || "",
 
   pedido:
-    q.get("pedido") || ""
+    q.get("pedido") || "",
+
+  tratamento:
+    q.get("tratamento") || ""
 
 };
+
+
+/* =====================================================
+   TRATAMENTO DO CLIENTE
+===================================================== */
+
+function nomeSemTitulo(nome){
+
+  return String(nome || "")
+    .replace(
+      /^(sr\.?|senhor|sra\.?|senhora|dona|d\.?\s*a\.?)\s+/i,
+      ""
+    )
+    .trim();
+
+}
+
+
+function detectarTratamento(nome){
+
+  const n =
+    nomeSemTitulo(nome);
+
+  if(!n)
+    return "";
+
+
+  if(
+    /^(sra\.?|senhora|dona|d\.?\s*a\.?)$/i
+      .test(ctx.tratamento)
+  ){
+
+    return "Senhora";
+
+  }
+
+
+  if(
+    /^(sr\.?|senhor)$/i
+      .test(ctx.tratamento)
+  ){
+
+    return "Senhor";
+
+  }
+
+
+  /*
+     Nomes femininos conhecidos.
+     Para os restantes usamos "Senhor"
+     como padrão, podendo o backend
+     corrigir caso tenha essa informação.
+  */
+
+  const femininos =
+    new Set([
+
+      "ana",
+      "maria",
+      "joana",
+      "jana",
+      "jéssica",
+      "jessica",
+      "juliana",
+      "julia",
+      "patricia",
+      "patrícia",
+      "paula",
+      "carla",
+      "catarina",
+      "cátia",
+      "catia",
+      "sandra",
+      "sara",
+      "sofia",
+      "sónia",
+      "sonia",
+      "helena",
+      "rosa",
+      "rosalia",
+      "rosália",
+      "nanda",
+      "nádia",
+      "nadia",
+      "florinda",
+      "teresa",
+      "marta",
+      "lúcia",
+      "lucia",
+      "beatriz",
+      "bruna",
+      "cristina",
+      "claudia",
+      "cláudia",
+      "diana",
+      "elisabete",
+      "emilia",
+      "emília",
+      "fátima",
+      "fatima",
+      "fernanda",
+      "gabriela",
+      "isabel",
+      "isabela",
+      "irene",
+      "ivone",
+      "laura",
+      "leonor",
+      "liliana",
+      "luisa",
+      "luísa",
+      "manuela",
+      "mónica",
+      "monica",
+      "natália",
+      "natalia",
+      "noémia",
+      "noemia",
+      "olga",
+      "raquel",
+      "regina",
+      "silvia",
+      "sílvia",
+      "vania",
+      "vânia",
+      "vera",
+      "virginia",
+      "virgínia",
+      "yolanda"
+
+    ]);
+
+
+  const primeiro =
+    n
+      .split(/\s+/)[0]
+      .toLowerCase();
+
+
+  return femininos.has(primeiro)
+    ? "Senhora"
+    : "Senhor";
+
+}
+
+
+if(ctx.nome){
+
+  ctx.nome =
+    nomeSemTitulo(ctx.nome);
+
+  ctx.tratamento =
+    detectarTratamento(ctx.nome);
+
+  ctx.titulo =
+    `${ctx.tratamento} ${ctx.nome}`;
+
+}else{
+
+  ctx.titulo =
+    "";
+
+}
 
 
 /* =====================================================
@@ -404,11 +604,15 @@ const ctx = {
 ===================================================== */
 
 const sessionId =
+
   q.get("session") ||
+
   (
     window.crypto &&
     crypto.randomUUID
+
       ? crypto.randomUUID()
+
       : "sessao-" + Date.now()
   );
 
@@ -425,11 +629,20 @@ let greeted = false;
 const avatarElement =
   document.getElementById("avatar");
 
-avatarElement.src = PHOTO;
 
-document.getElementById("context").textContent =
+setPhoto(
+  avatarElement
+);
+
+
+document
+  .getElementById("context")
+  .textContent =
+
   ctx.servico
+
     ? `Atendimento: ${ctx.servico}`
+
     : "Conversa geral";
 
 
@@ -440,14 +653,24 @@ document.getElementById("context").textContent =
 function esc(s){
 
   return String(s ?? "")
-    .replace(/[&<>"]/g, m => {
 
-      if(m === "&") return "&amp;";
-      if(m === "<") return "&lt;";
-      if(m === ">") return "&gt;";
-      return "&quot;";
+    .replace(
+      /[&<>"]/g,
+      m => {
 
-    });
+        if(m === "&")
+          return "&amp;";
+
+        if(m === "<")
+          return "&lt;";
+
+        if(m === ">")
+          return "&gt;";
+
+        return "&quot;";
+
+      }
+    );
 
 }
 
@@ -485,8 +708,10 @@ function add(
   const chat =
     document.getElementById("chat");
 
+
   const row =
     document.createElement("div");
+
 
   row.className =
     "row " + type;
@@ -494,6 +719,7 @@ function add(
 
   const av =
     document.createElement("div");
+
 
   av.className =
     "mini-avatar";
@@ -504,11 +730,13 @@ function add(
     const img =
       document.createElement("img");
 
-    img.src =
-      PHOTO;
+
+    setPhoto(img);
+
 
     img.alt =
       "Eduardo Gabriel";
+
 
     img.onerror =
       function(){
@@ -517,6 +745,7 @@ function add(
           "none";
 
       };
+
 
     av.appendChild(img);
 
@@ -533,6 +762,7 @@ function add(
   const wrap =
     document.createElement("div");
 
+
   wrap.className =
     "bubble-wrap";
 
@@ -540,23 +770,27 @@ function add(
   const speaker =
     document.createElement("div");
 
+
   speaker.className =
     "speaker";
 
 
   speaker.textContent =
+
     type === "bot"
 
       ? "Assistente Virtual — Eduardo Gabriel"
 
-      : `Cliente${ctx.nome ? " — " + ctx.nome : ""}`;
+      : (ctx.titulo || "Cliente");
 
 
   const msg =
     document.createElement("div");
 
+
   msg.className =
     "msg";
+
 
   msg.innerHTML =
     fmt(text);
@@ -567,18 +801,22 @@ function add(
     msg
   );
 
+
   row.append(
     av,
     wrap
   );
 
+
   chat.appendChild(row);
+
 
   chat.scrollTop =
     chat.scrollHeight;
 
 
   history.push({
+
     role:
       type === "bot"
         ? "assistant"
@@ -592,6 +830,7 @@ function add(
 
     type:
       type
+
   });
 
 }
@@ -610,12 +849,14 @@ function typing(){
   const row =
     document.createElement("div");
 
+
   row.className =
     "row bot";
 
 
   const av =
     document.createElement("div");
+
 
   av.className =
     "mini-avatar";
@@ -624,11 +865,13 @@ function typing(){
   const img =
     document.createElement("img");
 
-  img.src =
-    PHOTO;
+
+  setPhoto(img);
+
 
   img.alt =
     "Eduardo Gabriel";
+
 
   img.onerror =
     function(){
@@ -638,11 +881,13 @@ function typing(){
 
     };
 
+
   av.appendChild(img);
 
 
   const wrap =
     document.createElement("div");
+
 
   wrap.className =
     "bubble-wrap";
@@ -651,8 +896,10 @@ function typing(){
   const speaker =
     document.createElement("div");
 
+
   speaker.className =
     "speaker";
+
 
   speaker.textContent =
     "Assistente Virtual — Eduardo Gabriel";
@@ -661,8 +908,10 @@ function typing(){
   const t =
     document.createElement("div");
 
+
   t.className =
     "typing";
+
 
   t.innerHTML =
     "<i></i><i></i><i></i>";
@@ -673,12 +922,15 @@ function typing(){
     t
   );
 
+
   row.append(
     av,
     wrap
   );
 
+
   chat.appendChild(row);
+
 
   chat.scrollTop =
     chat.scrollHeight;
@@ -706,6 +958,7 @@ function say(
 
     t.remove();
 
+
     add(
       text,
       "bot"
@@ -726,13 +979,15 @@ function quick(items){
     document.getElementById("quick");
 
 
-  el.innerHTML = "";
+  el.innerHTML =
+    "";
 
 
   items.forEach(x => {
 
     const b =
       document.createElement("button");
+
 
     b.textContent =
       x;
@@ -743,6 +998,7 @@ function quick(items){
       document.getElementById(
         "input"
       ).value = x;
+
 
       send();
 
@@ -769,23 +1025,16 @@ function showIntro(){
   greeted = true;
 
 
-  /*
-     Se o link já trouxe o nome do cliente,
-     mantém o comportamento atual.
-
-     Caso contrário, a mensagem inicial pede
-     o nome antes de continuar.
-  */
-
   let intro;
 
 
   if(ctx.nome){
 
     intro =
-`Olá, **Sr. ${ctx.nome}**! 👋
 
-Sou o **Assistente Virtual do Eduardo Ngongoyove Gabriel**. Neste momento ele pode não estar disponível, mas estou aqui para prestar as primeiras informações e continuar o atendimento consigo.
+`Olá, **${ctx.titulo}**! 👋
+
+Sou o **Assistente Virtual do Eduardo Ngongoyove Gabriel**. Neste momento o senhor Eduardo pode não estar disponível, mas estou aqui para prestar as primeiras informações e continuar o atendimento consigo.
 
 Pode conversar comigo normalmente. Não precisa repetir os dados que já informou.`;
 
@@ -794,11 +1043,12 @@ Pode conversar comigo normalmente. Não precisa repetir os dados que já informo
   else{
 
     intro =
+
 `Olá! 👋
 
 Sou o **Assistente Virtual do Eduardo Ngongoyove Gabriel**.
 
-Antes de continuarmos, por favor, diga-me o seu nome.`;
+Antes de continuarmos, por favor, diga-me o seu nome. Assim poderei tratá-lo corretamente como **Senhor** ou **Senhora**.`;
 
   }
 
@@ -814,32 +1064,36 @@ Antes de continuarmos, por favor, diga-me o seu nome.`;
     if(ctx.nome && ctx.pedido){
 
       say(
-`Recebi o seu pedido inicial: **${ctx.pedido}**.
+
+`Recebi o pedido inicial de **${ctx.titulo}**: **${ctx.pedido}**.
 
 Pode continuar a partir daqui.`,
+
         220
+
       );
 
     }
 
-    else if(ctx.nome && ctx.servico){
+    else if(
+      ctx.nome &&
+      ctx.servico
+    ){
 
       say(
-`Entendi. O seu atendimento inicial está relacionado com **${ctx.servico}**.
+
+`Entendi, **${ctx.titulo}**. O seu atendimento inicial está relacionado com **${ctx.servico}**.
 
 Pode perguntar diretamente o que pretende saber sobre esse assunto.`,
+
         220
+
       );
 
     }
 
   },600);
 
-
-  /*
-     Os botões rápidos só aparecem automaticamente
-     quando já existe nome.
-  */
 
   if(ctx.nome){
 
@@ -869,22 +1123,94 @@ Pode perguntar diretamente o que pretende saber sobre esse assunto.`,
 ===================================================== */
 
 const queryApi =
+
   new URLSearchParams(
     location.search
   ).get("api") || "";
 
 
 const API_BASE =
+
   (
     queryApi ||
+
     window.EDUARDO_API_URL ||
+
     ""
-  ).replace(/\/$/, "");
+
+  ).replace(
+    /\/$/,
+    ""
+  );
 
 
 const IS_LOCAL_FILE =
+
   location.protocol === "file:" ||
+
   location.protocol === "content:";
+
+
+/* =====================================================
+   CAPTURAR NOME DIGITADO PELO CLIENTE
+===================================================== */
+
+function tentarCapturarNome(text){
+
+  if(ctx.nome)
+    return false;
+
+
+  const t =
+    String(text || "").trim();
+
+
+  const m =
+    t.match(
+
+      /^(?:sou|chamo-me|me chamo|o meu nome é|meu nome é|aqui é)\s+(.+)$/i
+
+    );
+
+
+  if(!m)
+    return false;
+
+
+  const nome =
+
+    nomeSemTitulo(
+      m[1]
+        .trim()
+        .replace(/[.!?]+$/,"")
+    );
+
+
+  if(
+    !nome ||
+    nome.split(/\s+/).length > 8
+  ){
+
+    return false;
+
+  }
+
+
+  ctx.nome =
+    nome;
+
+
+  ctx.tratamento =
+    detectarTratamento(nome);
+
+
+  ctx.titulo =
+    `${ctx.tratamento} ${nome}`;
+
+
+  return true;
+
+}
 
 
 /* =====================================================
@@ -905,16 +1231,60 @@ async function send(){
     return;
 
 
+  const capturouNome =
+    tentarCapturarNome(text);
+
+
   add(
     text,
     "user"
   );
 
 
-  input.value = "";
+  input.value =
+    "";
 
 
   quick([]);
+
+
+  if(capturouNome){
+
+    say(
+
+`Muito prazer, **${ctx.titulo}**. 👋
+
+Sou o **Assistente Virtual do Eduardo Ngongoyove Gabriel**. Como posso ajudá-lo(a)?`,
+
+      220
+
+    );
+
+
+    setTimeout(() => {
+
+      quick([
+
+        "🏥 Consultas na Namíbia",
+
+        "💰 Consultar preços",
+
+        "💻 Websites",
+
+        "📱 Redes sociais",
+
+        "🎵 Música",
+
+        "👤 Falar com Eduardo"
+
+      ]);
+
+    },450);
+
+
+    return;
+
+  }
 
 
   const payload = {
@@ -926,7 +1296,19 @@ async function send(){
       text,
 
     context:
-      ctx,
+      {
+
+        ...ctx,
+
+        instrucao_tratamento:
+
+          ctx.titulo
+
+            ? `Trate sempre o cliente por ${ctx.titulo}. Nunca trate o cliente apenas pelo primeiro nome.`
+
+            : "Depois de receber o nome, determine o tratamento Senhor/Senhora e use-o em todo o atendimento."
+
+      },
 
     history:
       history.slice(-20)
@@ -942,18 +1324,24 @@ async function send(){
     ){
 
       throw new Error(
+
         "O index.html foi aberto diretamente como ficheiro. Publique o backend e abra o endereço do chat, ou informe a URL do backend com ?api=https://SEU-BACKEND."
+
       );
 
     }
 
 
     const response =
+
       await fetch(
+
         `${API_BASE}/api/chat`,
+
         {
 
-          method:"POST",
+          method:
+            "POST",
 
           headers:{
             "Content-Type":
@@ -964,10 +1352,12 @@ async function send(){
             JSON.stringify(payload)
 
         }
+
       );
 
 
     const data =
+
       await response
         .json()
         .catch(
@@ -978,17 +1368,24 @@ async function send(){
     if(!response.ok){
 
       throw new Error(
+
         data.error ||
+
         `Falha no atendimento (HTTP ${response.status}).`
+
       );
 
     }
 
 
     say(
+
       data.reply ||
+
       "Desculpe, não consegui preparar a resposta agora.",
+
       220
+
     );
 
 
@@ -1016,88 +1413,110 @@ async function send(){
   catch(err){
 
     const msg =
+
       String(
         err?.message || ""
       );
 
 
     let friendly =
+
       "Neste momento não consegui ligar ao atendimento inteligente.";
 
 
     if(
+
       msg.includes(
         "não foi aceite"
       ) ||
+
       msg.includes(
         "chave da OpenAI"
       )
+
     ){
 
       friendly =
+
         "O servidor está online, mas a chave da IA ainda não está configurada corretamente.";
 
     }
 
 
     else if(
+
       msg.includes(
         "modelo configurado"
       )
+
     ){
 
       friendly =
+
         "O servidor está online, mas o modelo de IA configurado não está disponível para este projeto.";
 
     }
 
 
     else if(
+
       msg.includes(
         "limite de utilização"
       )
+
     ){
 
       friendly =
+
         "O atendimento inteligente atingiu temporariamente o limite de utilização. Tente novamente em instantes.";
 
     }
 
 
     else if(
+
       msg.includes(
         "O index.html foi aberto diretamente"
       )
+
     ){
 
       friendly =
+
         "Este ficheiro HTML foi aberto diretamente no telefone. Para a IA funcionar, o chat precisa estar ligado ao backend online.";
 
     }
 
 
     else if(
+
       msg.includes(
         "Failed to fetch"
       ) ||
+
       msg.includes(
         "NetworkError"
       )
+
     ){
 
       friendly =
+
         "Não consegui contactar o servidor do atendimento inteligente. Verifique se o backend está online e se a URL configurada está correta.";
 
     }
 
 
     say(
+
 `${friendly}
 
 ${msg && !msg.includes("HTTP")
   ? msg
   : "Tente novamente daqui a pouco."}`,
+
       220
+
     );
 
 
@@ -1116,13 +1535,16 @@ ${msg && !msg.includes("HTTP")
 
 document
   .getElementById("send")
-  .onclick = send;
+  .onclick =
+    send;
 
 
 document
   .getElementById("input")
   .addEventListener(
+
     "keydown",
+
     e => {
 
       if(
@@ -1136,6 +1558,7 @@ document
       }
 
     }
+
   );
 
 
