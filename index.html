@@ -801,15 +801,25 @@ function showIntro(){
     : "Olá! 👋";
 
 
+  const horaLuanda = Number(new Intl.DateTimeFormat("pt-AO", {
+    timeZone: "Africa/Luanda",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).format(new Date()).split(":")[0]);
+
+  const horarioEduardo =
+    horaLuanda >= 8 && horaLuanda < 18
+      ? "O senhor Eduardo está disponível dentro do horário de atendimento."
+      : "O senhor Eduardo já encerrou o expediente por hoje. Ele estará novamente disponível amanhã, a partir das 8 horas.";
+
   let intro = `${saudacao}
 
 Olá, seja muito bem-vindo(a)! 👋
 Sou a **Azny Gabriel, assistente virtual do senhor Eduardo**.
-Neste momento, o senhor Eduardo encontra-se ausente do WhatsApp, mas estou disponível para prestar as primeiras informações, esclarecer as suas dúvidas e encaminhar o seu atendimento.
+O senhor Eduardo está disponível dentro do horário de atendimento, das 8 às 18 horas. Fora desse horário, estou disponível para prestar as primeiras informações, esclarecer as suas dúvidas e encaminhar o seu atendimento.
 
-**Com quem tenho o prazer de falar e como posso ajudá-lo(a)?**
-
-Pode conversar comigo normalmente. Não precisa repetir os dados que já informou.`;
+**Com quem tenho o prazer de falar e como posso ajudá-lo(a)?**`;
 
 
   say(
