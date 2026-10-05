@@ -1043,7 +1043,7 @@ ${contextText}
 HORÁRIO E DISPONIBILIDADE DO SENHOR EDUARDO:
 ${horarioText}
 
-Se o cliente perguntar pelo senhor Eduardo, quiser falar com ele ou pedir atendimento direto com ele, respeite rigorosamente o horário acima. Fora do horário, informe de forma natural que o senhor Eduardo já encerrou o expediente e estará novamente disponível amanhã, a partir das 8 horas. Mesmo fora do horário, continue disponível para prestar as primeiras informações, esclarecer dúvidas e encaminhar o atendimento. Não invente outro horário.
+Se o cliente perguntar pelo senhor Eduardo, quiser falar com ele ou pedir atendimento direto com ele, informe a disponibilidade de acordo com o horário acima. Fora do horário, diga de forma natural que o senhor Eduardo encontra-se indisponível no momento e que, assim que estiver disponível novamente, poderá responder com a maior brevidade possível. Mesmo quando ele estiver indisponível, continue disponível para prestar as primeiras informações, esclarecer dúvidas e encaminhar o atendimento. Não invente outro horário.
 
 ${KNOWLEDGE_BASE}
 
