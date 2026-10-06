@@ -1165,13 +1165,12 @@ function showIntro(){
       ? "O senhor Eduardo encontra-se indisponível no momento. Assim que estiver disponível novamente, poderá responder com a maior brevidade possível."
       : "";
 
-  let intro = `${saudacao}
+  let intro = `\${saudacao}
 
-Olá, seja muito bem-vindo(a)! 👋
-Sou a **Azny Gabriel, assistente virtual do senhor Eduardo**.
-${horarioEduardo ? horarioEduardo + " " : ""}Estou disponível para prestar as primeiras informações, esclarecer as suas dúvidas e encaminhar o seu atendimento.
+É um prazer recebê-lo(a). Sou a **Azny Gabriel, assistente virtual do senhor Eduardo**.
+\${horarioEduardo ? horarioEduardo + " " : ""}Estou disponível para prestar informações, esclarecer dúvidas e encaminhar o seu atendimento.
 
-**Com quem tenho o prazer de falar?**`;
+Pode dizer-me, por favor, em que posso ajudá-lo(a)?`;
 
 
   say(
@@ -1255,8 +1254,8 @@ const EDUARDO_WHATSAPP_URL = "https://wa.me/244931057760";
 
 function isCallRequest(text){
   const value = String(text || "");
-  return /(?:ligar|ligue|chamar|telefonar|fazer uma chamada|fazer chamada|call|phone|ring|speak to|talk to)/i.test(value)
-    && /(?:eduardo|senhor eduardo|mr\.?\s*eduardo)/i.test(value);
+  return /(?:ligar|ligue|chamar|telefonar|fazer uma chamada|fazer chamada|quero falar|gostaria de falar|pretendo falar|falar com|fale com|speak to|talk to|call|phone|ring)/i.test(value)
+    && /(?:eduardo|senhor eduardo|sr\.?\s*eduardo|mr\.?\s*eduardo)/i.test(value);
 }
 
 function openEduardoWhatsApp(){
@@ -1347,6 +1346,36 @@ async function send(){
     return;
 
 
+  if(!ctx.nome){
+
+    const m =
+      text.match(
+        /^(?:eu sou|sou|meu nome é|meu nome e|chamo-me|chamo me|falas com|fala com|está a falar com|estou a falar com|aqui fala)\s+(?:o\s+|a\s+)?(?:sr\.?\s+|senhor\s+|sra\.?\s+|senhora\s+)?(.+)$/i
+      );
+
+    if(m){
+      ctx.nome =
+        normalizarNome(
+          m[1].replace(/[.!?]+/,"")
+        );
+    } else if(
+      /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{1,60}$/.test(text) &&
+      text.split(/\s+/).length <= 5 &&
+      !/^(olá|ola|oi|olá senhor|bom dia|boa tarde|boa noite|sim|não|nao|obrigado|obrigada|por favor|quanto|quanto custa|preço|preco)$/i.test(text) &&
+      !/(site|website|plataforma|software|sistema|tradução|traducao|marketing|design|curso|inglês|ingles|música|musica|piano|partitura|namíbia|namibia|windhoek|oshakati|ongwediva|ondangwa|hospital|consulta|preço|preco|valor|pagamento|envio|encomenda|pacote|câmbio|cambio|importação|importacao|visto|visa)/i.test(text)
+    ){
+      const recent =
+        history.slice(-5).some(item =>
+          item.type === "bot" &&
+          /diga-me o seu nome|qual é o seu nome|qual e o seu nome|para continuarmos.*nome/i.test(String(item.text || ""))
+        );
+
+      if(recent){
+        ctx.nome = normalizarNome(text);
+      }
+    }
+  }
+
   add(
     text,
     "user"
@@ -1367,44 +1396,6 @@ async function send(){
     );
     openEduardoWhatsApp();
     return;
-  }
-
-
-  /*
-   * Tentar descobrir o nome se o cliente
-   * ainda não veio identificado.
-   */
-
-  if(!ctx.nome){
-
-    const m =
-      text.match(
-        /^(?:eu sou|sou|meu nome é|chamo-me|chamo me|falas com|fala com|está a falar com|estou a falar com|aqui fala)\s+(?:o\s+|a\s+)?(?:sr\.?\s+|senhor\s+|sra\.?\s+|senhora\s+)?(.+)$/i
-      );
-
-    if(m){
-      ctx.nome =
-        normalizarNome(
-          m[1].replace(/[.!?]+$/,"")
-        );
-    } else if(
-      /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{1,60}$/.test(text) &&
-      text.split(/\s+/).length <= 5 &&
-      !/^(olá|ola|oi|olá senhor|bom dia|boa tarde|boa noite|sim|não|nao|obrigado|obrigada|por favor|quanto|quanto custa|preço|preco)$/i.test(text) &&
-      !/(site|website|plataforma|software|sistema|tradução|traducao|marketing|design|curso|inglês|ingles|música|musica|piano|partitura|namíbia|namibia|windhoek|oshakati|ongwediva|ondangwa|hospital|consulta|preço|preco|valor|pagamento|envio|encomenda|pacote|câmbio|cambio|importação|importacao|visto|visa)/i.test(text)
-    ){
-      // Quando o assistente acabou de pedir o nome, uma resposta
-      // simples como "Paulo" também é uma apresentação válida.
-      const recent = history.slice(-5).some(item =>
-        item.type === "bot" &&
-        /diga-me o seu nome|qual é o seu nome|qual e o seu nome|para continuarmos.*nome/i.test(String(item.text || ""))
-      );
-
-      if(recent){
-        ctx.nome = normalizarNome(text);
-      }
-    }
-
   }
 
 
@@ -1520,7 +1511,7 @@ async function send(){
 
 
     let friendly =
-      "Neste momento não consegui ligar ao atendimento inteligente.";
+      "Peço desculpa, não foi possível concluir o atendimento neste momento. Pode tentar novamente ou, se preferir, falar diretamente com o Sr. Eduardo.";
 
 
     if(
