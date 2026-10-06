@@ -467,7 +467,7 @@ O assistente nunca deve dizer:
 - "Eduardo" sem o título Sr.
 
 A apresentação correta é:
-"Sou o Azny Gabriel, assistente virtual do Sr. Eduardo Ngongoyove Gabriel."
+"Sou a Azny Gabriel, assistente virtual do Sr. Eduardo Ngongoyove Gabriel."
 
 Quando mencionar o proprietário, usar:
 "Sr. Eduardo Ngongoyove Gabriel"
@@ -515,8 +515,8 @@ FLUXO OBRIGATÓRIO
 
 PRIMEIRO CONTACTO:
 
-Não é obrigatório obter o nome antes de responder a perguntas sobre
-preços, serviços, cursos, websites, Namíbia, tradução ou outros assuntos.
+É obrigatório identificar o cliente antes de iniciar o atendimento
+sobre preços, serviços, cursos, websites, Namíbia, tradução ou outros assuntos.
 
 Perguntar de forma natural:
 
@@ -1059,7 +1059,7 @@ function buildSystemPrompt({
 }) {
   const identity = clientName
     ? `CONTEXTO DO CLIENTE:\nNome identificado: ${clientName}\nTratamento identificado: ${clientTitle}\nUse isto apenas quando for relevante; não repita o nome por obrigação.`
-    : `CONTEXTO DO CLIENTE:\nO nome ainda não foi identificado. Isso não impede o atendimento.`;
+    : `CONTEXTO DO CLIENTE:\nO nome ainda não foi identificado. Antes de responder sobre qualquer serviço, peça primeiro o nome do cliente.`;
 
   const horarioText = horarioSenhorEduardo();
   const tomorrowText = agendaAmanhaEduardo();
@@ -1159,85 +1159,67 @@ function buildMessages(history, currentMessage, systemPrompt) {
 // ============================================================
 
 async function askGroq(env, messages) {
-  if (!env.GROQ_API_KEY) {
-    throw new Error("IA_NOT_CONFIGURED");
+  if (!env.GROQ_API_KEY || !String(env.GROQ_API_KEY).trim()) {
+    const error = new Error("GROQ_API_KEY não configurada no Worker.");
+    error.code = "IA_NOT_CONFIGURED";
+    throw error;
   }
 
-  const attempts = [
-    {
-      model: MODEL,
-      messages,
-      temperature: 0.7,
-      max_completion_tokens: 2500,
-      top_p: 0.95,
-      reasoning_effort: "medium",
-      include_reasoning: false,
-      stream: false
+  const payload = {
+    model: MODEL,
+    messages,
+    temperature: 0.6,
+    max_completion_tokens: 1200,
+    top_p: 0.95,
+    reasoning_effort: "low",
+    include_reasoning: false,
+    stream: false
+  };
+
+  const response = await fetch(GROQ_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + String(env.GROQ_API_KEY).trim()
     },
-    {
-      model: MODEL,
-      messages,
-      max_completion_tokens: 3000,
-      reasoning_effort: "low",
-      include_reasoning: false,
-      stream: false
-    },
-    {
-      model: MODEL,
-      messages,
-      max_completion_tokens: 3000,
-      stream: false
-    }
-  ];
+    body: JSON.stringify(payload)
+  });
 
-  let lastError = null;
+  const raw = await response.text();
 
-  for (const payload of attempts) {
-    try {
-      const response = await fetch(GROQ_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${env.GROQ_API_KEY}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const raw = await response.text();
-      let data;
-
-      try {
-        data = JSON.parse(raw);
-      } catch {
-        throw new Error("INVALID_GROQ_RESPONSE");
-      }
-
-      if (!response.ok) {
-        const providerError = new Error(
-          data?.error?.message || `GROQ_HTTP_${response.status}`
-        );
-        providerError.status = response.status;
-        providerError.providerCode = data?.error?.code || "";
-        throw providerError;
-      }
-
-      const message = data?.choices?.[0]?.message || {};
-      const content = String(message.content || "").trim();
-
-      if (content) {
-        return content;
-      }
-
-      throw new Error("EMPTY_GROQ_CONTENT");
-    } catch (error) {
-      lastError = error;
-      console.error("Erro interno ao obter resposta da IA:", error);
-      await new Promise(resolve => setTimeout(resolve, 250));
-    }
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    const error = new Error("Resposta inválida recebida da Groq.");
+    error.status = response.status;
+    error.providerCode = "INVALID_JSON";
+    throw error;
   }
 
-  throw lastError || new Error("AI_RESPONSE_FAILED");
+  if (!response.ok) {
+    const error = new Error(
+      data?.error?.message ||
+      ("Groq HTTP " + response.status)
+    );
+    error.status = response.status;
+    error.providerCode = data?.error?.code || "";
+    throw error;
+  }
+
+  const content =
+    String(data?.choices?.[0]?.message?.content || "").trim();
+
+  if (!content) {
+    const error = new Error("A Groq não devolveu conteúdo.");
+    error.status = response.status;
+    error.providerCode = "EMPTY_CONTENT";
+    throw error;
+  }
+
+  return content;
 }
+
 // ============================================================
 // ANÁLISE DE IMAGENS / OCR — GROQ VISION
 // ============================================================
@@ -1489,11 +1471,27 @@ async function handleChat(request, env) {
     );
 
   // ----------------------------------------------------------
-  // ATENDIMENTO GERADO NATURALMENTE PELA IA
+  // IDENTIFICAÇÃO OBRIGATÓRIA DO CLIENTE
   // ----------------------------------------------------------
-  // O nome identificado, quando existir, é enviado ao modelo como
-  // contexto. Quando ainda não existir, o próprio system prompt
-  // orienta a IA a pedir o nome de forma natural.
+  // O primeiro contacto não depende da IA. Se ainda não houver
+  // nome, o Worker responde diretamente e evita uma chamada
+  // desnecessária à Groq.
+  // ----------------------------------------------------------
+  if (!clientName) {
+    const normalized = message.replace(/\s+/g, " ").trim();
+    const greetingOnly = /^(olá|ola|oi|olá tudo bem|ola tudo bem|oi tudo bem|bom dia|boa tarde|boa noite|hello|hi|hey|how are you|how are you doing)[!?.,\s]*$/i.test(normalized);
+
+    return json({
+      ok: true,
+      reply: greetingOnly
+        ? "Tudo bem, obrigado pela sua mensagem. Antes de continuarmos, por favor, diga-me o seu nome."
+        : "Antes de continuarmos, por favor, diga-me o seu nome.",
+      clientName: null,
+      clientTitle: null,
+      formalName: null,
+      identified: false
+    });
+  }
 
   // ----------------------------------------------------------
   // CLIENTE IDENTIFICADO
