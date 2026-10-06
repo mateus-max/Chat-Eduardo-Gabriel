@@ -16,8 +16,7 @@ const VISION_MODEL = "qwen/qwen3.8-27b";
 
 const CONFIG = {
   maxHistory: 30,
-  maxMessageLength: 6000,
-  rateLimitPerHour: 120
+  maxMessageLength: 6000
 };
 
 // ============================================================
@@ -27,39 +26,12 @@ const CONFIG = {
 const rateMap = new Map();
 
 function checkRateLimit(ip) {
-  const now = Date.now();
-  const hour = 60 * 60 * 1000;
-
-  const item = rateMap.get(ip);
-
-  if (!item || now - item.start > hour) {
-    rateMap.set(ip, {
-      start: now,
-      count: 1
-    });
-
-    return {
-      allowed: true,
-      remaining: CONFIG.rateLimitPerHour - 1
-    };
-  }
-
-  if (item.count >= CONFIG.rateLimitPerHour) {
-    return {
-      allowed: false,
-      remaining: 0,
-      resetSeconds: Math.max(
-        1,
-        Math.ceil((hour - (now - item.start)) / 1000)
-      )
-    };
-  }
-
-  item.count++;
-
+  // O limite de mensagens da aplicação não deve bloquear o cliente
+  // antes dos limites reais do provedor de IA.
+  // A Groq é responsável pelo rate limit da API.
   return {
     allowed: true,
-    remaining: Math.max(0, CONFIG.rateLimitPerHour - item.count)
+    remaining: null
   };
 }
 
@@ -1411,20 +1383,9 @@ async function handleChat(request, env) {
 
   const localRate = checkRateLimit(ip);
 
-  if (!localRate.allowed) {
-    return json(
-      {
-        ok: false,
-        error:
-          "O limite temporário de mensagens deste atendimento foi atingido. Tente novamente mais tarde.",
-        code: "LOCAL_RATE_LIMIT",
-        limit: CONFIG.rateLimitPerHour,
-        remaining: 0,
-        resetSeconds: localRate.resetSeconds
-      },
-      429
-    );
-  }
+  // Não bloquear o cliente por um limite artificial do Worker.
+  // Se a Groq atingir o seu próprio limite, o erro 429 da Groq
+  // será devolvido e identificado como GROQ_RATE_LIMIT.
 
   let body;
 
@@ -1611,8 +1572,8 @@ ${documentContext}
       error: userError,
       code: status === 429 ? "GROQ_RATE_LIMIT" : "GROQ_ERROR",
       localRateLimit: {
-        limit: CONFIG.rateLimitPerHour,
-        remaining: localRate.remaining
+        enabled: false,
+        remaining: null
       }
     };
 
