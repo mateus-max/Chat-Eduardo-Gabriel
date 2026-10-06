@@ -1,0 +1,6 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "chat-eduardo-gabriel354",
+  "main": "./legacy-proxy.js",
+  "compatibility_date": "2026-10-06"
+}
