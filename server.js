@@ -370,8 +370,15 @@ function detectTitle(text, history = []) {
     return "Sr.";
   }
 
-  // Padrão definido pelo proprietário:
-  // Sr. quando não houver indicação feminina.
+  // Se não houver tratamento explícito, use sinais linguísticos simples
+  // do próprio nome para evitar tratamentos claramente incorretos
+  // (ex.: "Emanuela" -> Sra.). Se não for possível determinar,
+  // mantém-se o tratamento formal padrão.
+  const nameText = String(text || "").trim().split(/\s+/)[0];
+  if (/^[A-Za-zÀ-ÿ]{3,}$/i.test(nameText) && /a$/i.test(nameText)) {
+    return "Sra.";
+  }
+
   return "Sr.";
 }
 
@@ -508,9 +515,8 @@ FLUXO OBRIGATÓRIO
 
 PRIMEIRO CONTACTO:
 
-Antes de falar sobre preços, serviços, cursos, websites,
-Namíbia, tradução ou qualquer outro assunto de atendimento,
-é obrigatório obter o nome do cliente.
+Não é obrigatório obter o nome antes de responder a perguntas sobre
+preços, serviços, cursos, websites, Namíbia, tradução ou outros assuntos.
 
 Perguntar de forma natural:
 
@@ -1123,6 +1129,17 @@ CONTACTO OFICIAL PARA WHATSAPP:
 - O número oficial do Sr. Eduardo é +244 931 057 760.
 - Para links WhatsApp, use o formato internacional sem sinais ou espaços: 244931057760.
 - Nunca invente ou substitua este número.
+
+REGRAS CRÍTICAS DE ATENDIMENTO NATURAL:
+
+- Não transforme a conversa num formulário.
+- Responda primeiro à intenção da mensagem atual.
+- Use o histórico para interpretar perguntas curtas, referências e mudanças de assunto.
+- Se o cliente perguntar "O senhor Eduardo?", responda diretamente sobre o Sr. Eduardo e a disponibilidade dele; não peça o nome do cliente e não gere uma mensagem de erro.
+- Se o cliente disser que quer falar com o Sr. Eduardo, trate isso como um pedido de contacto direto.
+- Quando não souber algo, diga de forma humana que não consegue confirmar aquele detalhe e continue a ajudar no que souber.
+- Nunca diga que "não conseguiu ligar ao atendimento inteligente" ou qualquer outra mensagem técnica.
+- Não repita frases de abertura ou fórmulas idênticas sem necessidade.
 
 REGRAS CRÍTICAS:
 
