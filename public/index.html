@@ -1264,16 +1264,26 @@ Pode perguntar diretamente o que pretende saber sobre esse assunto.`,
    API
    ========================================================= */
 
+const DEPLOYED_API_BASE =
+  "https://chat-eduardo-gabriel.eduardongabriel354.workers.dev";
+
 const queryApi =
   new URLSearchParams(location.search)
     .get("api") || "";
 
+const configuredApi =
+  queryApi ||
+  window.EDUARDO_API_URL ||
+  DEPLOYED_API_BASE;
+
+const isWorkersDevHost =
+  /\\.workers\\.dev$/i.test(location.hostname);
 
 const API_BASE =
   (
-    queryApi ||
-    window.EDUARDO_API_URL ||
-    "https://chat-eduardo-gabriel354.workers.dev"
+    isWorkersDevHost
+      ? location.origin
+      : configuredApi
   ).replace(/\/$/,"");
 
 
