@@ -1422,19 +1422,6 @@ async function send(){
 
   quick([]);
 
-  if(isCallRequest(text)){
-    const isEnglish = /\b(call|phone|ring|speak to|talk to)\b/i.test(text);
-    say(
-      isEnglish
-        ? "I’m opening the official WhatsApp contact for Mr. Eduardo now."
-        : "Vou abrir agora o WhatsApp oficial do Sr. Eduardo.",
-      180
-    );
-    openEduardoWhatsApp();
-    return;
-  }
-
-
   const payload = {
 
     session_id:sessionId,
