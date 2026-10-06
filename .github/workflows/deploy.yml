@@ -31,3 +31,19 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Verificar atendimento publicado
+        run: |
+          set -euo pipefail
+          echo "Verificando /health..."
+          HEALTH="$(curl -fsS --retry 3 --retry-delay 2 --max-time 30 https://chat-eduardo-gabriel354.workers.dev/health)"
+          echo "$HEALTH"
+          echo "$HEALTH" | grep -q '"ok":true'
+          echo "Verificando /api/chat..."
+          CHAT="$(curl -fsS --retry 2 --retry-delay 2 --max-time 90 \
+            -H 'Content-Type: application/json' \
+            --data '{"message":"Olá","context":{},"history":[]}' \
+            https://chat-eduardo-gabriel354.workers.dev/api/chat)"
+          echo "$CHAT"
+          echo "$CHAT" | grep -q '"ok":true'
+          echo "Atendimento confirmado."
