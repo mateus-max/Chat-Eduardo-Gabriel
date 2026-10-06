@@ -322,7 +322,7 @@ body{
   <div class="composer-tools">
     <button id="emojiBtn" type="button" aria-label="Emoji">😊</button>
     <button id="attachBtn" type="button" aria-label="Anexar">📎</button>
-    <input id="fileInput" type="file" hidden multiple accept="image/*,.pdf,.doc,.docx,.txt,.csv,.xlsx,.xls">
+    <input id="fileInput" type="file" hidden multiple accept="image/*,audio/*,.pdf,.doc,.docx,.txt,.csv,.xlsx,.xls">
     <button id="voiceBtn" type="button" aria-label="Mensagem de voz">🎙️</button>
     <input id="input" autocomplete="off" placeholder="Escreva a sua mensagem..." style="flex:1">
     <button id="send" aria-label="Enviar">➤</button>
@@ -530,7 +530,7 @@ async function askWithDocument(question,documentContext){
       ...ctx,
       tratamento:detectarTratamento(nomeCliente()),
       identificacao_cliente:tratamentoCliente(),
-      instrucao_tratamento:"Trate o cliente de forma respeitosa como Senhor [Nome] ou Senhora [Nome]."
+      instrucao_tratamento:"Trate o cliente com respeito. Use Senhor/Senhora e o nome apenas quando for natural; não repita o nome no início de todas as respostas."
     },
     history:history.slice(-20)
   };
@@ -542,6 +542,21 @@ async function askWithDocument(question,documentContext){
   const data=await r.json().catch(()=>({}));
   if(!r.ok) throw new Error(data.error||"Falha no atendimento.");
   return data;
+}
+
+async function transcribeAudioBlob(blob, filename="voice.webm", language="pt"){
+  const form = new FormData();
+  form.append("audio", blob, filename);
+  if(language) form.append("language", language);
+  const tr = await fetch(`${API_BASE}/api/transcribe`, {
+    method:"POST",
+    body:form
+  });
+  const data = await tr.json().catch(()=>({}));
+  if(!tr.ok || !data.transcript){
+    throw new Error(data.error || "Não foi possível compreender o áudio.");
+  }
+  return String(data.transcript).trim();
 }
 
 async function processAttachment(file){
@@ -561,6 +576,29 @@ async function processAttachment(file){
   try{
     let contextText="";
     let replyQuestion=question;
+
+    if(file.type.startsWith("audio/")){
+      contextText=await transcribeAudioBlob(file, file.name || "audio.webm", "pt");
+      activeDocumentContext=`Áudio: ${file.name}
+
+Transcrição:
+${contextText}`;
+      activeDocumentName=file.name;
+      setAttachmentStatus(row,"Áudio transcrito e mantido no contexto da conversa.");
+      const data=await askWithDocument(
+        replyQuestion||"Responda diretamente ao pedido contido no áudio, mantendo o contexto da conversa.",
+        activeDocumentContext
+      );
+      typingRow.remove();
+      if(!data.reply) throw new Error("A IA não devolveu uma resposta.");
+      add(data.reply,"bot");
+      if(data.clientName && !ctx.nome) ctx.nome=data.clientName;
+      history.push({text:contextText,type:"user"});
+      history.push({text:data.reply,type:"bot"});
+      queueConversationSave();
+      if(data.quick_replies) quick(data.quick_replies);
+      return;
+    }
 
     if(isImage){
       contextText=await analyzeImageFile(file,question||"Analise esta imagem e explique claramente o que ela contém. Leia também o texto visível.");
@@ -1268,6 +1306,7 @@ async function processVoiceMessage(blob){
 
     const form = new FormData();
     form.append("audio", blob, "voice.webm");
+    form.append("language", "pt");
 
     const tr = await fetch(`${API_BASE}/api/transcribe`, {
       method:"POST",
@@ -1320,7 +1359,7 @@ async function processVoiceMessage(blob){
     chat.scrollTop=chat.scrollHeight;
   }catch(err){
     typingRow.remove();
-    add("Peço desculpa, não foi possível processar a mensagem de voz neste momento. Por favor, tente novamente.","bot");
+    add("Peço desculpa, não consegui compreender bem o áudio. Se puder, envie-o novamente ou escreva a mensagem e continuarei a ajudá-lo(a).","bot");
     console.error(err);
   }
 }
