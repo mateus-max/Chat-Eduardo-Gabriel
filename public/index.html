@@ -1165,12 +1165,9 @@ function showIntro(){
       ? "O senhor Eduardo encontra-se indisponível no momento. Assim que estiver disponível novamente, poderá responder com a maior brevidade possível."
       : "";
 
-  let intro = `\${saudacao}
+  let intro = `${saudacao}
 
-É um prazer recebê-lo(a). Sou a **Azny Gabriel, assistente virtual do senhor Eduardo**.
-\${horarioEduardo ? horarioEduardo + " " : ""}Estou disponível para prestar informações, esclarecer dúvidas e encaminhar o seu atendimento.
-
-Pode dizer-me, por favor, em que posso ajudá-lo(a)?`;
+Sou a **Azny Gabriel**, assistente virtual do senhor Eduardo. É um prazer recebê-lo(a). Em que posso ajudá-lo(a)?`;
 
 
   say(
