@@ -1198,12 +1198,15 @@ async function askGroq(env, messages) {
   }
 
   if (!response.ok) {
-    const error = new Error(
+    const providerMessage = String(
       data?.error?.message ||
       ("Groq HTTP " + response.status)
-    );
+    ).trim();
+
+    const error = new Error(providerMessage);
     error.status = response.status;
     error.providerCode = data?.error?.code || "";
+    error.providerType = data?.error?.type || "";
     throw error;
   }
 
@@ -1562,16 +1565,30 @@ ${documentContext}
     );
 
     const debug = request.headers.get("X-Chat-Debug") === "1";
+    const status = Number(error?.status) || 0;
+    let userError =
+      "Peço desculpa, não foi possível processar a sua mensagem neste momento. Por favor, tente novamente.";
+
+    if (error?.code === "IA_NOT_CONFIGURED") {
+      userError = "O atendimento inteligente ainda não está configurado no servidor (GROQ_API_KEY).";
+    } else if (status === 401) {
+      userError = "A chave da Groq configurada no servidor foi rejeitada. Verifique a GROQ_API_KEY no Cloudflare.";
+    } else if (status === 429) {
+      userError = "A Groq atingiu temporariamente o limite de utilização. Tente novamente em alguns instantes.";
+    } else if (status === 400) {
+      userError = "A configuração enviada para a Groq foi rejeitada. O servidor precisa de uma pequena correção.";
+    }
+
     const response = {
       ok: false,
-      error:
-        "Peço desculpa, não foi possível processar a sua mensagem neste momento. Por favor, tente novamente.",
+      error: userError,
       code: "GROQ_ERROR"
     };
 
     if (debug) {
-      response.providerStatus = Number(error?.status) || null;
+      response.providerStatus = status || null;
       response.providerCode = String(error?.providerCode || "").slice(0, 120);
+      response.providerType = String(error?.providerType || "").slice(0, 120);
       response.providerMessage = String(error?.message || "").slice(0, 500);
     }
 
