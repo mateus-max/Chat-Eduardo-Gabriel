@@ -1276,15 +1276,14 @@ const configuredApi =
   window.EDUARDO_API_URL ||
   DEPLOYED_API_BASE;
 
-const isWorkersDevHost =
-  /\.workers\.dev$/i.test(location.hostname);
-
+/*
+ * O chat pode ser aberto tanto no GitHub Pages como num workers.dev.
+ * O endereço do frontend não deve decidir qual backend usar.
+ * O backend oficial é sempre o Worker de produção, salvo quando
+ * o utilizador informar explicitamente ?api=...
+ */
 const API_BASE =
-  (
-    isWorkersDevHost
-      ? location.origin
-      : configuredApi
-  ).replace(/\/$/,"");
+  configuredApi.replace(/\/$/,"");
 
 
 const IS_LOCAL_FILE =
@@ -1504,7 +1503,18 @@ async function send(){
 
 
     if(!r.ok){
-      throw new Error("ATENDIMENTO_INDISPONIVEL");
+      const backendMessage =
+        typeof data?.error === "string"
+          ? data.error.trim()
+          : "";
+
+      const error = new Error(
+        backendMessage || "ATENDIMENTO_INDISPONIVEL"
+      );
+
+      error.status = r.status;
+      error.code = data?.code || "";
+      throw error;
     }
 
 
