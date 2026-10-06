@@ -1233,9 +1233,36 @@ async function askGroq(env, messages) {
     throw new Error("IA_NOT_CONFIGURED");
   }
 
+  const attempts = [
+    {
+      model: MODEL,
+      messages,
+      temperature: 0.7,
+      max_completion_tokens: 2500,
+      top_p: 0.95,
+      reasoning_effort: "medium",
+      include_reasoning: false,
+      stream: false
+    },
+    {
+      model: MODEL,
+      messages,
+      max_completion_tokens: 3000,
+      reasoning_effort: "low",
+      include_reasoning: false,
+      stream: false
+    },
+    {
+      model: MODEL,
+      messages,
+      max_completion_tokens: 3000,
+      stream: false
+    }
+  ];
+
   let lastError = null;
 
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  for (const payload of attempts) {
     try {
       const response = await fetch(GROQ_URL, {
         method: "POST",
@@ -1243,15 +1270,7 @@ async function askGroq(env, messages) {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${env.GROQ_API_KEY}`
         },
-        body: JSON.stringify({
-          model: MODEL,
-          messages,
-          temperature: 0.72,
-          max_completion_tokens: attempt === 1 ? 1800 : 3000,
-          top_p: 0.95,
-          reasoning_effort: "medium",
-          stream: false
-        })
+        body: JSON.stringify(payload)
       });
 
       const raw = await response.text();
@@ -1280,16 +1299,12 @@ async function askGroq(env, messages) {
     } catch (error) {
       lastError = error;
       console.error("Erro interno ao obter resposta da IA:", error);
-
-      if (attempt < 2) {
-        await new Promise(resolve => setTimeout(resolve, 350));
-      }
+      await new Promise(resolve => setTimeout(resolve, 250));
     }
   }
 
   throw lastError || new Error("AI_RESPONSE_FAILED");
 }
-
 // ============================================================
 // ANÁLISE DE IMAGENS / OCR — GROQ VISION
 // ============================================================
