@@ -1063,11 +1063,15 @@ function buildSystemPrompt({
 CLIENTE IDENTIFICADO
 
 Nome: ${clientName}
-Tratamento obrigatório: ${clientTitle} ${clientName}
+Tratamento formal disponível: ${clientTitle} ${clientName}
 
 IMPORTANTE:
-- Dirija-se ao cliente como "${clientTitle} ${clientName}".
-- Nunca use apenas "${clientName}".
+- Preserve o nome e o tratamento correto do cliente.
+- Use "${clientTitle} ${clientName}" quando for natural e útil.
+- NÃO comece todas as respostas com o nome do cliente.
+- Em perguntas de seguimento ou respostas curtas, responda diretamente
+  sem repetir o nome desnecessariamente.
+- Nunca use apenas "${clientName}" para se dirigir ao cliente.
 - Não altere o nome.
 - Não invente outro nome.
 `
@@ -1387,7 +1391,7 @@ async function transcribeAudio(env, request) {
   const incoming = await request.formData();
   const audio = incoming.get("audio");
 
-  if (!(audio instanceof File)) {
+  if (!audio || typeof audio.arrayBuffer !== "function") {
     throw new Error("Áudio não encontrado.");
   }
 
@@ -1399,7 +1403,15 @@ async function transcribeAudio(env, request) {
   form.append("file", audio, audio.name || "voice.webm");
   form.append("model", "whisper-large-v3-turbo");
   form.append("response_format", "json");
-  form.append("language", "pt");
+  const requestedLanguage = String(incoming.get("language") || "").trim().toLowerCase();
+  if (/^[a-z]{2}$/.test(requestedLanguage)) {
+    form.append("language", requestedLanguage);
+  }
+  form.append(
+    "prompt",
+    "Transcreva com fidelidade a fala do cliente. Preserve nomes próprios, nomes de lugares, valores, números e termos em português, inglês ou outros idiomas presentes no áudio. Não invente palavras."
+  );
+  form.append("temperature", "0");
 
   const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
     method: "POST",
