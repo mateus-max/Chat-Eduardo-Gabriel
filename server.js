@@ -1213,9 +1213,12 @@ async function askGroq(env, messages) {
       }
 
       if (!response.ok) {
-        throw new Error(
+        const providerError = new Error(
           data?.error?.message || `GROQ_HTTP_${response.status}`
         );
+        providerError.status = response.status;
+        providerError.providerCode = data?.error?.code || "";
+        throw providerError;
       }
 
       const message = data?.choices?.[0]?.message || {};
@@ -1560,14 +1563,21 @@ ${documentContext}
       error
     );
 
-    return json(
-      {
-        ok: false,
-        error:
-          "Peço desculpa, não foi possível processar a sua mensagem neste momento. Por favor, tente novamente."
-      },
-      502
-    );
+    const debug = request.headers.get("X-Chat-Debug") === "1";
+    const response = {
+      ok: false,
+      error:
+        "Peço desculpa, não foi possível processar a sua mensagem neste momento. Por favor, tente novamente.",
+      code: "GROQ_ERROR"
+    };
+
+    if (debug) {
+      response.providerStatus = Number(error?.status) || null;
+      response.providerCode = String(error?.providerCode || "").slice(0, 120);
+      response.providerMessage = String(error?.message || "").slice(0, 500);
+    }
+
+    return json(response, 502);
   }
 
   // A resposta da IA é apresentada como foi gerada.
