@@ -15,7 +15,10 @@ const VISION_MODEL = "qwen/qwen3.8-27b";
 // ============================================================
 
 const CONFIG = {
-  maxHistory: 30,
+  // Mantém contexto suficiente para uma conversa natural sem
+  // ultrapassar facilmente o limite de tokens por minuto da Groq Free.
+  maxHistory: 10,
+  maxHistoryChars: 12000,
   maxMessageLength: 6000
 };
 
@@ -59,8 +62,9 @@ function json(data, status = 200) {
 function normalizeHistory(history) {
   if (!Array.isArray(history)) return [];
 
-  return history
-    .slice(-CONFIG.maxHistory)
+  const recent = history.slice(-CONFIG.maxHistory);
+
+  const normalized = recent
     .map(item => {
       if (!item) return null;
 
@@ -95,6 +99,25 @@ function normalizeHistory(history) {
       return null;
     })
     .filter(Boolean);
+
+  // Limita o histórico total enviado à IA. O histórico completo
+  // continua no frontend; isto só reduz o payload da chamada Groq.
+  const result = [];
+  let totalChars = 0;
+
+  for (let i = normalized.length - 1; i >= 0; i--) {
+    const item = normalized[i];
+    const size = item.content.length;
+
+    if (result.length > 0 && totalChars + size > CONFIG.maxHistoryChars) {
+      break;
+    }
+
+    result.unshift(item);
+    totalChars += size;
+  }
+
+  return result;
 }
 
 // ============================================================
@@ -1162,7 +1185,7 @@ async function askGroq(env, messages) {
     model: MODEL,
     messages,
     temperature: 0.6,
-    max_completion_tokens: 1200,
+    max_completion_tokens: 900,
     top_p: 0.95,
     reasoning_effort: "low",
     include_reasoning: false,
@@ -1562,7 +1585,17 @@ ${documentContext}
     } else if (status === 401) {
       userError = "A chave da Groq configurada no servidor foi rejeitada. Verifique a GROQ_API_KEY no Cloudflare.";
     } else if (status === 429) {
-      userError = "A Groq atingiu temporariamente o limite de utilização. Tente novamente em alguns instantes.";
+      const tokenRemaining = readHeader(error?.headers, "x-ratelimit-remaining-tokens");
+      const requestRemaining = readHeader(error?.headers, "x-ratelimit-remaining-requests");
+      const resetTokens = readHeader(error?.headers, "x-ratelimit-reset-tokens");
+
+      if (tokenRemaining === "0" || resetTokens) {
+        userError = "O processamento da IA atingiu temporariamente o limite de tokens por minuto. Aguarde alguns segundos e tente novamente.";
+      } else if (requestRemaining === "0") {
+        userError = "A quota diária de pedidos da IA foi atingida. O sistema voltará a aceitar pedidos quando a quota for renovada.";
+      } else {
+        userError = "A IA está temporariamente a limitar os pedidos. Tente novamente em alguns instantes.";
+      }
     } else if (status === 400) {
       userError = "A configuração enviada para a Groq foi rejeitada. O servidor precisa de uma pequena correção.";
     }
