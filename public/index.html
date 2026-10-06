@@ -1185,9 +1185,7 @@ function showIntro(){
 
 
   const saudacao = ctx.nome
-
     ? `Olá, **${detectarTratamento(nomeCliente())} ${nomeCliente()}**! 👋`
-
     : "Olá! 👋";
 
 
@@ -1200,12 +1198,12 @@ function showIntro(){
 
   const horarioEduardo =
     horaLuanda >= 19
-      ? "O senhor Eduardo encontra-se indisponível no momento. Assim que estiver disponível novamente, poderá responder com a maior brevidade possível."
+      ? "O **Sr. Eduardo Ngongoyove Gabriel** encontra-se indisponível no momento. Assim que estiver disponível novamente, poderá responder com a maior brevidade possível."
       : "";
 
   let intro = `${saudacao}
 
-Sou a **Azny Gabriel**, assistente virtual do senhor Eduardo. É um prazer recebê-lo(a). Em que posso ajudá-lo(a)?`;
+Sou a **Azny Gabriel**, assistente virtual do **Sr. Eduardo Ngongoyove Gabriel**. Antes de continuarmos, por favor, diga-me o seu nome.`;
 
 
   say(
@@ -1430,6 +1428,21 @@ async function send(){
   input.value = "";
 
   quick([]);
+
+  // Identificação obrigatória: não chamar a IA enquanto o nome
+  // ainda não foi informado.
+  if(!ctx.nome){
+    const normalized = text.replace(/\s+/g," ").trim();
+    const greetingOnly = /^(olá|ola|oi|olá tudo bem|ola tudo bem|oi tudo bem|bom dia|boa tarde|boa noite|hello|hi|hey|how are you|how are you doing)[!?.,\s]*$/i.test(normalized);
+
+    say(
+      greetingOnly
+        ? "Tudo bem, obrigado pela sua mensagem. Antes de continuarmos, por favor, diga-me o seu nome."
+        : "Antes de continuarmos, por favor, diga-me o seu nome.",
+      180
+    );
+    return;
+  }
 
   const payload = {
 
