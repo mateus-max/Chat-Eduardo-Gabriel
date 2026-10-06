@@ -1226,10 +1226,10 @@ async function askGroq(env, messages) {
         body: JSON.stringify({
           model: MODEL,
           messages,
-          temperature: 0.6,
+          temperature: 0.72,
           max_completion_tokens: attempt === 1 ? 1800 : 3000,
           top_p: 0.95,
-          reasoning_effort: "low",
+          reasoning_effort: "medium",
           stream: false
         })
       });
