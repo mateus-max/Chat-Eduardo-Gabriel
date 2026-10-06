@@ -1667,15 +1667,16 @@ async function handleAdminConversation(request, env, sessionId) {
 // WORKER
 // ============================================================
 
-async function fetchHandler(request) {
-    // No formato Service Worker do Cloudflare, os bindings
-    // (Secrets, Vars e Assets) ficam disponíveis como globais.
-    // Construímos um objeto "env" compatível com o restante do código.
-    const env = {
+async function fetchHandler(request, runtimeEnv) {
+    // No formato Module Worker, Secrets, KV e Assets chegam
+    // diretamente pelo segundo argumento "env".
+    // Mantemos fallback para o formato Service Worker, se necessário.
+    const env = runtimeEnv || {
       GROQ_API_KEY:
-        (typeof globalThis.GROQ_API_KEY === "string" &&
-         globalThis.GROQ_API_KEY.trim())
-          ? globalThis.GROQ_API_KEY.trim()
+        (typeof GROQ_API_KEY !== "undefined" &&
+         typeof GROQ_API_KEY === "string" &&
+         GROQ_API_KEY.trim())
+          ? GROQ_API_KEY.trim()
           : (typeof process !== "undefined" &&
              process.env &&
              typeof process.env.GROQ_API_KEY === "string" &&
@@ -1683,13 +1684,15 @@ async function fetchHandler(request) {
               ? process.env.GROQ_API_KEY.trim()
               : undefined,
       ADMIN_PANEL_KEY:
-        (typeof globalThis.ADMIN_PANEL_KEY === "string" && globalThis.ADMIN_PANEL_KEY.trim())
-          ? globalThis.ADMIN_PANEL_KEY.trim()
+        (typeof ADMIN_PANEL_KEY !== "undefined" &&
+         typeof ADMIN_PANEL_KEY === "string" &&
+         ADMIN_PANEL_KEY.trim())
+          ? ADMIN_PANEL_KEY.trim()
           : undefined,
       CONVERSATIONS:
-        globalThis.CONVERSATIONS || undefined,
+        (typeof CONVERSATIONS !== "undefined" ? CONVERSATIONS : undefined),
       ASSETS:
-        globalThis.ASSETS || undefined
+        (typeof ASSETS !== "undefined" ? ASSETS : undefined)
     };
     const url =
       new URL(request.url);
@@ -1832,6 +1835,8 @@ async function fetchHandler(request) {
     );
   }
 
-addEventListener("fetch", (event) => {
-  event.respondWith(fetchHandler(event.request));
-});
+export default {
+  async fetch(request, env, ctx) {
+    return fetchHandler(request, env, ctx);
+  }
+};
