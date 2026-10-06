@@ -8,6 +8,8 @@ on:
       - "server.js"
       - "public/**"
       - "wrangler.jsonc"
+      - "legacy-proxy.js"
+      - "wrangler-legacy.jsonc"
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
