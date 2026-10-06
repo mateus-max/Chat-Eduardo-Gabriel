@@ -56,8 +56,9 @@ jobs:
           echo "$HEALTH" | grep -q '"groqConfigured":true'
 
           echo "Verificando conversa real — identificação + serviços..."
-          CHAT1="$(curl -fsS --retry 2 --retry-delay 2 --max-time 90 \
+          CHAT1="$(curl -sS --retry 2 --retry-delay 2 --max-time 90 \
             -H 'Content-Type: application/json' \
+            -H 'X-Chat-Debug: 1' \
             --data @- \
             "https://${WORKER_HOST}/api/chat" <<'JSON'
           {
