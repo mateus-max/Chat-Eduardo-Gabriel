@@ -1221,6 +1221,7 @@ async function askGroq(env, messages) {
 
     const error = new Error(providerMessage);
     error.status = response.status;
+    error.headers = response.headers;
     error.providerCode = data?.error?.code || "";
     error.providerType = data?.error?.type || "";
     throw error;
