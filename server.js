@@ -1854,6 +1854,17 @@ async function fetchHandler(request) {
     }
 
     // --------------------------------------------------------
+    // PAINEL WEB NO CLOUDFLARE
+    // --------------------------------------------------------
+    // O painel administrativo também fica disponível diretamente
+    // no domínio do Worker, sem depender do GitHub Pages.
+    if ((url.pathname === "/admin" || url.pathname === "/admin/") && env.ASSETS) {
+      const adminUrl = new URL(request.url);
+      adminUrl.pathname = "/admin.html";
+      return env.ASSETS.fetch(new Request(adminUrl.toString(), request));
+    }
+
+    // --------------------------------------------------------
     // ASSETS
     // --------------------------------------------------------
 
