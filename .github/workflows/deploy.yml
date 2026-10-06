@@ -36,15 +36,49 @@ jobs:
         run: |
           set -euo pipefail
           WORKER_HOST="chat-eduardo-gabriel.eduardongabriel354.workers.dev"
+
           echo "Verificando /health..."
           HEALTH="$(curl -fsS --retry 3 --retry-delay 2 --max-time 30 "https://${WORKER_HOST}/health")"
           echo "$HEALTH"
           echo "$HEALTH" | grep -q '"ok":true'
-          echo "Verificando /api/chat..."
-          CHAT="$(curl -fsS --retry 2 --retry-delay 2 --max-time 90 \
+          echo "$HEALTH" | grep -q '"groqConfigured":true'
+
+          echo "Verificando conversa real — identificação + serviços..."
+          CHAT1="$(curl -fsS --retry 2 --retry-delay 2 --max-time 90 \
             -H 'Content-Type: application/json' \
-            --data '{"message":"Olá","context":{},"history":[]}' \
-            "https://${WORKER_HOST}/api/chat")"
-          echo "$CHAT"
-          echo "$CHAT" | grep -q '"ok":true'
-          echo "Atendimento confirmado."
+            --data @- \
+            "https://${WORKER_HOST}/api/chat" <<'JSON'
+          {
+            "message":"Quais são os vossos serviços?",
+            "context":{
+              "nome":"Paulo",
+              "tratamento":"Senhor",
+              "identificacao_cliente":"Senhor Paulo",
+              "instrucao_tratamento":"Trate o cliente de forma respeitosa como Senhor [Nome] ou Senhora [Nome] quando for natural."
+            },
+            "history":[{"role":"assistant","content":"Olá, Senhor Paulo. Em que posso ajudá-lo?"}]
+          }
+          JSON
+          )"
+          echo "$CHAT1"
+          echo "$CHAT1" | grep -q '"ok":true'
+          echo "$CHAT1" | grep -q '"reply":"'
+          echo "$CHAT1" | grep -q '"clientName":"Paulo"'
+
+          REPLY1="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["reply"])' <<< "$CHAT1")"
+
+          echo "Verificando segunda mensagem usando o histórico da conversa..."
+          CHAT2="$(python3 - "$REPLY1" "$WORKER_HOST" <<'PY'
+          import json, subprocess, sys
+          reply1 = sys.argv[1]
+          host = sys.argv[2]
+          payload = {"message":"Está bem","context":{"nome":"Paulo","tratamento":"Senhor","identificacao_cliente":"Senhor Paulo"},"history":[{"role":"assistant","content":"Olá, Senhor Paulo. Em que posso ajudá-lo?"},{"role":"user","content":"Quais são os vossos serviços?"},{"role":"assistant","content":reply1}]}
+          result = subprocess.run(["curl","-fsS","--retry","2","--retry-delay","2","--max-time","90","-H","Content-Type: application/json","--data",json.dumps(payload,ensure_ascii=False),"https://"+host+"/api/chat"],text=True,capture_output=True)
+          if result.returncode: print(result.stdout); print(result.stderr,file=sys.stderr); raise SystemExit(result.returncode)
+          print(result.stdout)
+          PY
+          )"
+          echo "$CHAT2"
+          echo "$CHAT2" | grep -q '"ok":true'
+          echo "$CHAT2" | grep -q '"reply":"'
+          echo "Atendimento completo confirmado."
