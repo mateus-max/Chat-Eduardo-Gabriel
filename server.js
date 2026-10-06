@@ -38,16 +38,29 @@ function checkRateLimit(ip) {
       count: 1
     });
 
-    return true;
+    return {
+      allowed: true,
+      remaining: CONFIG.rateLimitPerHour - 1
+    };
   }
 
   if (item.count >= CONFIG.rateLimitPerHour) {
-    return false;
+    return {
+      allowed: false,
+      remaining: 0,
+      resetSeconds: Math.max(
+        1,
+        Math.ceil((hour - (now - item.start)) / 1000)
+      )
+    };
   }
 
   item.count++;
 
-  return true;
+  return {
+    allowed: true,
+    remaining: Math.max(0, CONFIG.rateLimitPerHour - item.count)
+  };
 }
 
 // ============================================================
@@ -1158,6 +1171,14 @@ function buildMessages(history, currentMessage, systemPrompt) {
 // API GROQ
 // ============================================================
 
+function readHeader(headers, name) {
+  if (!headers) return null;
+  const value = headers instanceof Headers
+    ? headers.get(name)
+    : (typeof headers.get === "function" ? headers.get(name) : null);
+  return value == null ? null : String(value);
+}
+
 async function askGroq(env, messages) {
   if (!env.GROQ_API_KEY || !String(env.GROQ_API_KEY).trim()) {
     const error = new Error("GROQ_API_KEY não configurada no Worker.");
@@ -1388,12 +1409,18 @@ async function handleChat(request, env) {
     request.headers.get("X-Forwarded-For") ||
     "unknown";
 
-  if (!checkRateLimit(ip)) {
+  const localRate = checkRateLimit(ip);
+
+  if (!localRate.allowed) {
     return json(
       {
         ok: false,
         error:
-          "Limite temporário de mensagens atingido. Tente novamente mais tarde."
+          "O limite temporário de mensagens deste atendimento foi atingido. Tente novamente mais tarde.",
+        code: "LOCAL_RATE_LIMIT",
+        limit: CONFIG.rateLimitPerHour,
+        remaining: 0,
+        resetSeconds: localRate.resetSeconds
       },
       429
     );
@@ -1582,8 +1609,24 @@ ${documentContext}
     const response = {
       ok: false,
       error: userError,
-      code: "GROQ_ERROR"
+      code: status === 429 ? "GROQ_RATE_LIMIT" : "GROQ_ERROR",
+      localRateLimit: {
+        limit: CONFIG.rateLimitPerHour,
+        remaining: localRate.remaining
+      }
     };
+
+    if (status === 429) {
+      response.rateLimit = {
+        requestsRemaining: readHeader(error?.headers, "x-ratelimit-remaining-requests"),
+        requestsLimit: readHeader(error?.headers, "x-ratelimit-limit-requests"),
+        tokensRemaining: readHeader(error?.headers, "x-ratelimit-remaining-tokens"),
+        tokensLimit: readHeader(error?.headers, "x-ratelimit-limit-tokens"),
+        resetRequests: readHeader(error?.headers, "x-ratelimit-reset-requests"),
+        resetTokens: readHeader(error?.headers, "x-ratelimit-reset-tokens"),
+        retryAfter: readHeader(error?.headers, "retry-after")
+      };
+    }
 
     if (debug) {
       response.providerStatus = status || null;
@@ -1592,7 +1635,7 @@ ${documentContext}
       response.providerMessage = String(error?.message || "").slice(0, 500);
     }
 
-    return json(response, 502);
+    return json(response, status === 429 ? 429 : 502);
   }
 
   // A resposta da IA é apresentada como foi gerada.
