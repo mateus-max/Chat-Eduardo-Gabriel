@@ -1654,11 +1654,16 @@ async function handleAdminConversations(request, env) {
   if (!(await requireAdmin(request, env))) return json({ok:false,error:"Não autorizado."},401);
   const listing = await env.CONVERSATIONS.list({prefix:"conversation:",limit:100});
   const keys = listing.keys.map(x => x.name);
-  const values = keys.length ? await env.CONVERSATIONS.get(keys, "json") : new Map();
+  // KV get() recebe uma chave por vez. Não usar get(keys, "json"),
+  // porque isso pode impedir o painel de carregar as conversas guardadas.
   const conversations = [];
   for (const key of keys) {
-    const item = values.get(key);
-    if (item) conversations.push(item);
+    try {
+      const item = await env.CONVERSATIONS.get(key, "json");
+      if (item) conversations.push(item);
+    } catch (error) {
+      console.error("Erro ao ler conversa do KV:", key, error);
+    }
   }
   conversations.sort((a,b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
   return json({ok:true,conversations,listComplete:listing.list_complete});
