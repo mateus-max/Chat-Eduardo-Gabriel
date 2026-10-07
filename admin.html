@@ -15,6 +15,15 @@ input{width:100%;padding:12px 14px;border:1px solid #cbd7e4;border-radius:11px;o
 @media(max-width:800px){.layout.conversation-open{display:block!important;grid-template-columns:none!important;height:calc(100vh - 70px)!important}.layout.conversation-open .side{display:none!important}.layout.conversation-open .detail{display:flex!important;width:100%!important;height:calc(100vh - 70px)!important;min-height:0!important}.conversation-open .dh{padding:10px 11px;flex:none}.dh .subject{display:none}.dh .client-avatar{width:42px;height:42px}.dh .client-main b{font-size:16px}.conversation-open .msgs{padding:12px 9px;flex:1;min-height:0}.conversation-open .bubble{max-width:90%;font-size:14px}.conversation-open .info{padding:8px 10px;gap:6px;flex:none}.conversation-open .info .btn{padding:8px 9px}.conversation-open .info input{width:145px}}
 
 @media(max-width:800px){.layout{grid-template-columns:1fr}.side{height:40vh;border-right:0;border-bottom:1px solid #dbe4ed}.detail{height:60vh}.secondary{display:none!important}.layout.conversation-open{display:block!important;height:calc(100vh - 70px)!important}.layout.conversation-open .side{display:none!important}.layout.conversation-open .detail{display:flex!important;height:calc(100vh - 70px)!important;width:100%!important}}
+
+/* FORCE FULL-SCREEN SELECTED CONVERSATION */
+body.conversation-screen-open{overflow:hidden}
+body.conversation-screen-open #layout{display:block!important;grid-template-columns:none!important;height:calc(100vh - 70px)!important;width:100%!important}
+body.conversation-screen-open #layout .side{display:none!important;width:0!important;height:0!important;overflow:hidden!important;border:0!important;padding:0!important;margin:0!important}
+body.conversation-screen-open #layout .detail{display:flex!important;width:100%!important;height:calc(100vh - 70px)!important;min-width:0!important;min-height:0!important}
+body.conversation-screen-open #layout .detail .msgs{display:block!important;visibility:visible!important;flex:1 1 auto!important;min-height:0!important;overflow:auto!important}
+body.conversation-screen-open #layout .detail .info{display:flex!important;visibility:visible!important;flex:none!important}
+@media(max-width:800px){body.conversation-screen-open #layout,body.conversation-screen-open #layout .detail{height:calc(100vh - 70px)!important;width:100%!important}body.conversation-screen-open #layout .detail .msgs{padding:12px 10px!important}}
 </style></head><body>
 <section id="login" class="login"><div class="card"><div class="brand">Eduardo Gabriel</div><p class="muted">Painel Administrativo de Atendimentos</p><input id="key" type="password" placeholder="Código administrativo"><button id="enter" class="btn primary full">Entrar no painel</button><div id="err" class="err"></div></div></section>
 <section id="app" class="hidden"><header class="top"><div><strong>Painel de Atendimentos</strong><br><small>Azny Gabriel → Eduardo Gabriel</small></div><div class="actions"><button id="install" class="btn hidden">📱 Instalar</button><button id="refresh" class="btn">↻ Atualizar</button><button id="logout" class="btn">Sair</button></div></header>
@@ -36,7 +45,17 @@ function renderList(){var q=$("search").value.toLowerCase(),a=items.filter(funct
 function initials(name){return String(name||"Cliente").trim().split(/\s+/).slice(0,2).map(function(x){return x.charAt(0).toUpperCase()}).join("")||"C"}
 function renderDetail(){
   if(!selected)return;
+  document.body.classList.add("conversation-screen-open");
+  document.body.style.overflow="hidden";
   $("layout").classList.add("conversation-open");
+  $("layout").style.display="block";
+  $("layout").style.gridTemplateColumns="none";
+  $("layout").style.height="calc(100vh - 70px)";
+  $("layout").style.width="100%";
+  $("layout").querySelector(".side").style.display="none";
+  $("layout").querySelector(".detail").style.display="flex";
+  $("layout").querySelector(".detail").style.width="100%";
+  $("layout").querySelector(".detail").style.height="calc(100vh - 70px)";
   var n=selected.clientName||"Cliente não identificado";
   var subject=selected.service||selected.request||"Atendimento geral";
   var phone=selected.phone||"";
@@ -46,7 +65,7 @@ function renderDetail(){
   $("info").innerHTML='<div class="info-group"><span class="info-label">Serviço:</span><span class="info-value">'+esc(selected.service||"—")+'</span></div><div class="info-group"><span class="info-label">WhatsApp:</span><input id="phone" value="'+esc(selected.phone||"")+'" placeholder="Número do cliente"><button class="btn" onclick="savePhone()">Guardar</button></div><button class="btn" onclick="exportTxt()">📄 TXT</button><button class="btn" onclick="exportJson()">↓ JSON</button><button class="btn primary" onclick="whatsapp()">📱 Continuar no WhatsApp</button>';
   $("msgs").scrollTop=$("msgs").scrollHeight;
 }
-function closeConversation(){selected=null;$("layout").classList.remove("conversation-open");$("head").innerHTML='<div><b>Selecione uma conversa</b><div class="muted">O histórico aparecerá aqui.</div></div>';$("msgs").innerHTML='<div class="empty">Escolha um atendimento na lista.</div>';$("info").classList.add("hidden");renderList()}
+function closeConversation(){selected=null;document.body.classList.remove("conversation-screen-open");document.body.style.overflow="";$("layout").classList.remove("conversation-open");$("layout").style.display="";$("layout").style.gridTemplateColumns="";$("layout").style.height="";$("layout").style.width="";$("layout").querySelector(".side").style.display="";$("layout").querySelector(".detail").style.display="";$("layout").querySelector(".detail").style.width="";$("layout").querySelector(".detail").style.height="";$("head").innerHTML='<div><b>Selecione uma conversa</b><div class="muted">O histórico aparecerá aqui.</div></div>';$("msgs").innerHTML='<div class="empty">Escolha um atendimento na lista.</div>';$("info").classList.add("hidden");renderList()}
 function savePhone(){var p=$("phone").value.trim();selected.phone=p;fetch(API_BASE+"/api/conversations/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_id:selected.sessionId,context:{nome:selected.clientName,telefone:p,email:selected.email,servico:selected.service,pedido:selected.request},history:selected.history,status:selected.status})}).then(load)}
 function whatsapp(){var p=String(selected.phone||"").replace(/\D/g,"");if(p.indexOf("00")===0)p=p.slice(2);if(p.charAt(0)==="0")p="244"+p.slice(1);if(!p){alert("Informe primeiro o número de WhatsApp do cliente.");return}var clean=String(selected.clientName||"").replace(/^(sr\.?|sra\.?|senhor|senhora)\s+/i,"");var title=/^(sra|senhora)\b/i.test(selected.clientName||"")?"Sra. ":"Sr. ";var msg="Olá, "+title+clean+". Aqui é o Eduardo Gabriel. Tomei conhecimento da sua conversa com a minha assistente Azny Gabriel e vou dar continuidade pessoalmente ao seu atendimento.";window.open("https://wa.me/"+p+"?text="+encodeURIComponent(msg),"_blank")}
 function download(t,n,type){var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:type}));a.download=n;a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},1000)}
