@@ -1460,6 +1460,17 @@ async function handleAdminConversations(request, env) {
   return json({ok:true,conversations,listComplete});
 }
 
+async function handleAdminDeleteConversation(request, env, sessionId) {
+  if (!(await requireAdmin(request, env))) return json({ok:false,error:"Não autorizado."},401);
+  const id = String(sessionId || "").trim();
+  if (!/^[A-Za-z0-9_-]{8,120}$/.test(id)) {
+    return json({ok:false,error:"Sessão inválida."},400);
+  }
+  const deleted = await env.CONVERSATIONS.delete("conversation:" + id);
+  if (!deleted) return json({ok:false,error:"Conversa não encontrada."},404);
+  return json({ok:true,deleted:true,sessionId:id});
+}
+
 async function handleAdminConversation(request, env, sessionId) {
   if (!(await requireAdmin(request, env))) return json({ok:false,error:"Não autorizado."},401);
   const item = await env.CONVERSATIONS.get("conversation:" + sessionId, "json");
@@ -1535,6 +1546,9 @@ async function fetchHandler(request) {
     }
     if (url.pathname.startsWith("/api/admin/conversations/") && request.method === "GET") {
       return handleAdminConversation(request, env, decodeURIComponent(url.pathname.slice("/api/admin/conversations/".length)));
+    }
+    if (url.pathname.startsWith("/api/admin/conversations/") && request.method === "DELETE") {
+      return handleAdminDeleteConversation(request, env, decodeURIComponent(url.pathname.slice("/api/admin/conversations/".length)));
     }
 
     // --------------------------------------------------------
