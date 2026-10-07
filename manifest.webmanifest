@@ -18,31 +18,19 @@
       "src": "/pwa/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/pwa/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/pwa/maskable-icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/pwa/maskable-icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ],
   "screenshots": [
     {
       "src": "/pwa/screenshots/admin-selected-mobile.jpg",
-      "sizes": "691x1310",
+      "sizes": "240x455",
       "type": "image/jpeg",
       "form_factor": "narrow",
       "label": "Conversa selecionada no painel administrativo"
