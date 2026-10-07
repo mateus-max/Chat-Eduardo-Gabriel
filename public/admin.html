@@ -71,6 +71,8 @@ async function api(path,opt){opt=opt||{};opt.headers=Object.assign({},opt.header
 async function load(){var r=await api("/api/admin/conversations"),d=await r.json().catch(function(){return{}});if(!r.ok){alert(d.error||"Falha ao carregar.");return}items=d.conversations||[];$("count").textContent=items.length+" atendimento"+(items.length===1?"":"s");renderList();if(selected){for(var i=0;i<items.length;i++)if(items[i].sessionId===selected.sessionId){selected=items[i];renderDetail();break}}}
 function renderList(){var q=$("search").value.toLowerCase(),a=items.filter(function(c){return [c.clientName,c.phone,c.service,c.request].join(" ").toLowerCase().indexOf(q)>=0});$("list").innerHTML=a.length?a.map(function(c){return '<div class="item '+(selected&&selected.sessionId===c.sessionId?"active":"")+'" data-id="'+esc(c.sessionId)+'"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div class="name">'+esc(c.clientName||"Cliente não identificado")+'</div><button class="btn danger" style="padding:4px 7px;font-size:12px" title="Eliminar conversa" data-delete="'+esc(c.sessionId)+'">🗑️</button></div><div class="meta"><span>'+esc(c.service||"Atendimento geral")+'</span><span class="pill '+(c.status==="human"?"human":"")+'">'+(c.status==="human"?"Eduardo":"Azny")+'</span></div><div class="meta"><span>'+esc(last(c))+'</span><span>'+date(c.updatedAt)+'</span></div></div>'}).join(""):'<div class="empty">Ainda não há conversas guardadas.</div>';document.querySelectorAll(".item").forEach(function(el){el.onclick=function(e){if(e.target&&e.target.closest&&e.target.closest("[data-delete]"))return;selected=items.find(function(c){return c.sessionId===el.dataset.id})||null;renderList();renderDetail()};var del=el.querySelector("[data-delete]");if(del)del.onclick=function(e){e.stopPropagation();selected=items.find(function(c){return c.sessionId===del.dataset.delete})||null;deleteConversation()}})}
 function initials(name){return String(name||"Cliente").trim().split(/\s+/).slice(0,2).map(function(x){return x.charAt(0).toUpperCase()}).join("")||"C"}
+function editClientInfo(){toggleConversationMenu();var p=document.getElementById("phone");if(p){p.focus();p.select()}}
+
 function toggleConversationMenu(e){
   if(e&&e.stopPropagation)e.stopPropagation();
   var m=document.getElementById("conversationMenu");
@@ -112,7 +114,7 @@ function renderDetail(){
       '<div class="conversation-menu-wrap">'+
         '<button class="btn dots-btn" onclick="toggleConversationMenu(event)" title="Opções" aria-label="Opções">⋮</button>'+
         '<div id="conversationMenu" class="conversation-menu">'+
-          '<button type="button" onclick="closeConversation();setTimeout(function(){renderDetail()},0)">✎ Editar informações</button>'+
+          '<button type="button" onclick="editClientInfo()">✎ Editar informações</button>'+
           '<button type="button" class="danger" onclick="toggleConversationMenu();deleteConversation()">🗑 Eliminar conversa</button>'+
         '</div>'+
       '</div>'+
