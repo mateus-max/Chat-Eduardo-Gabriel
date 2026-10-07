@@ -897,6 +897,8 @@ async function saveConversationToAdmin(){
       body:JSON.stringify({
         session_id:sessionId,
         context:ctx,
+        clientName:ctx.nome || "",
+        clientPhone:ctx.telefone || "",
         history:history.slice(-100)
       })
     });
