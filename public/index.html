@@ -1400,7 +1400,7 @@ async function send(){
     if(m){
       ctx.nome =
         normalizarNome(
-          m[1].replace(/[.!?]+/,"")
+          m[1].replace(/\s*(?:,|;|\s+e\s+)?\s*(?:o\s+meu|meu|minha|o)\s*(?:n[uú]mero|telefone|whatsapp|contacto|contato)\s*(?:é|e|:|-)?\s*.*$/i,"").replace(/[.!?]+$/,"")
         );
     } else if(
       /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{1,60}$/.test(text) &&
