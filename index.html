@@ -1497,6 +1497,9 @@ async function send(){
     if(data.clientName) ctx.nome=data.clientName;
     if(data.clientPhone) ctx.telefone=data.clientPhone;
 
+    // Persistir imediatamente o nome completo e o WhatsApp assim que o servidor os confirmar.
+    queueConversationSave();
+
     if(data.quick_replies)
       quick(
         data.quick_replies
