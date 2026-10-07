@@ -971,6 +971,7 @@ continue o atendimento normalmente e use o tratamento correto.
 
 A conversa deve parecer um atendimento humano real.
 `;
+}
 
 // ============================================================
 // HISTÓRICO → MENSAGENS GROQ
