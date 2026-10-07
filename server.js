@@ -1,398 +1,64 @@
-// ============================================================
-// CHAT VIRTUAL — SR. EDUARDO NGONGOYOVE GABRIEL
-// Deployment refresh: 2026-10-05
-// Backend Cloudflare Worker + Groq
-// ============================================================
+function findKnownClientName(context, history, currentMessage) {
+  // 1. Nome vindo diretamente pelo portal
+  if (context && context.nome) {
+    const name = cleanName(context.nome);
 
-const GROQ_URL =
-  "https://api.groq.com/openai/v1/chat/completions";
-
-const MODEL = "openai/gpt-oss-20b";
-const VISION_MODEL = "qwen/qwen3.8-27b";
-
-// ============================================================
-// CONFIGURAÇÃO
-// ============================================================
-
-const CONFIG = {
-  // Mantém contexto suficiente para uma conversa natural sem
-  // ultrapassar facilmente o limite de tokens por minuto da Groq Free.
-  maxHistory: 10,
-  maxHistoryChars: 12000,
-  maxMessageLength: 6000
-};
-
-// ============================================================
-// RATE LIMIT SIMPLES
-// ============================================================
-
-const rateMap = new Map();
-
-function checkRateLimit(ip) {
-  // O limite de mensagens da aplicação não deve bloquear o cliente
-  // antes dos limites reais do provedor de IA.
-  // A Groq é responsável pelo rate limit da API.
-  return {
-    allowed: true,
-    remaining: null
-  };
-}
-
-// ============================================================
-// RESPOSTAS
-// ============================================================
-
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=UTF-8",
-      "Cache-Control": "no-store",
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
+    if (name) {
+      return name;
     }
-  });
-}
-
-// ============================================================
-// NORMALIZA HISTÓRICO
-// ============================================================
-
-function normalizeHistory(history) {
-  if (!Array.isArray(history)) return [];
-
-  const recent = history.slice(-CONFIG.maxHistory);
-
-  const normalized = recent
-    .map(item => {
-      if (!item) return null;
-
-      // Formato novo
-      if (item.role && item.content) {
-        return {
-          role:
-            item.role === "assistant"
-              ? "assistant"
-              : "user",
-          content: String(item.content).slice(
-            0,
-            CONFIG.maxMessageLength
-          )
-        };
-      }
-
-      // Formato antigo do frontend
-      if (item.type && item.text) {
-        return {
-          role:
-            item.type === "bot"
-              ? "assistant"
-              : "user",
-          content: String(item.text).slice(
-            0,
-            CONFIG.maxMessageLength
-          )
-        };
-      }
-
-      return null;
-    })
-    .filter(Boolean);
-
-  // Limita o histórico total enviado à IA. O histórico completo
-  // continua no frontend; isto só reduz o payload da chamada Groq.
-  const result = [];
-  let totalChars = 0;
-
-  for (let i = normalized.length - 1; i >= 0; i--) {
-    const item = normalized[i];
-    const size = item.content.length;
-
-    if (result.length > 0 && totalChars + size > CONFIG.maxHistoryChars) {
-      break;
-    }
-
-    result.unshift(item);
-    totalChars += size;
   }
 
-  return result;
-}
+  // 2. Procurar nas mensagens anteriores
+  for (let i = history.length - 1; i >= 0; i--) {
+    const item = history[i];
 
-// ============================================================
-// LIMPAR NOME
-// ============================================================
+    if (item.role !== "user") continue;
 
-function cleanName(name) {
-  if (!name) return "";
+    const found = extractNameFromText(
+      item.content,
+      history.slice(0, i)
+    );
 
-  let value = String(name)
-    .replace(/\s+/g, " ")
-    .trim();
+    if (found) {
+      return found;
+    }
+  }
 
-  value = value.replace(
-    /^(sr\.?|senhor|sra\.?|senhora)\s+/i,
-    ""
+  // 3. Procurar na mensagem atual
+  const foundCurrent = extractNameFromText(
+    currentMessage,
+    history
   );
 
-  value = value.replace(/[.,!?;:]+$/g, "").trim();
-
-  if (value.length < 2) return "";
-
-  if (value.length > 80) return "";
-
-  return value;
-}
-
-// ============================================================
-// EXTRAIR NOME DA MENSAGEM
-// ============================================================
-
-function extractNameFromText(text, previousHistory = []) {
-  if (!text) return null;
-
-  const value = String(text)
-    .replace(/\s+/g, " ")
-    .trim();
-
-  // Formas naturais de apresentação do próprio cliente.
-  // Ex.: "Falas com o senhor Emiliano" ou "Está a falar com a senhora Maria".
-  const presentedMatch = value.match(/^\s*(?:fala|fale|falas|falo|está a falar|estão a falar|estou a falar|aqui fala)\s+(?:com\s+)?(?:o\s+|a\s+)?(?:(?:sr\.?|senhor|sra\.?|senhora)\s+)?(.+)$/i);
-
-  if (presentedMatch) {
-    const name = cleanName(presentedMatch[1]);
-    if (name && name.split(/\s+/).length <= 5 && !looksLikeServiceRequest(name)) {
-      return name;
-    }
+  if (foundCurrent) {
+    return foundCurrent;
   }
 
-  // Apresentações em inglês.
-  let englishMatch = value.match(/^\s*(?:my name is|my name's|i am|i'm|this is|you're speaking (?:to|with)|you are speaking (?:to|with)|speaking (?:to|with))\s+(?:(?:mr|mrs|ms|miss)\.?\s+)?(.+)$/i);
-  if (englishMatch) {
-    const name = cleanName(englishMatch[1]);
-    if (name && name.split(/\s+/).length <= 5 && !looksLikeServiceRequest(name)) {
-      return name;
-    }
-  }
-
-  // ----------------------------------------------------------
-  // Apresentações pelo nome:
-  // "Meu nome é João"
-  // "Eu me chamo João"
-  // "Me chamo João"
-  // "Chamo-me João"
-  // "Me chamo o senhor João"
-  // "Me chamo a senhora Maria"
-  // "Eu sou João"
-  // "Eu sou o senhor João"
-  // ----------------------------------------------------------
-
-  let match = value.match(
-    /^(?:(?:eu\s+)?(?:meu nome\s*(?:é|e|eh)|meu nome chama-se|meu nome chama|(?:eu\s+)?me\s+chamo|(?:eu\s+)?chamo-me|(?:eu\s+)?chamo)\s+)(?:(?:o|a)\s+)?(?:(?:sr\.?|senhor|sra\.?|senhora)\s+)?(.+)$/i
-  );
-
-  if (match) {
-    const name = cleanName(match[1]);
-
-    if (
-      name &&
-      name.split(/\s+/).length <= 5 &&
-      !looksLikeServiceRequest(name)
-    ) {
-      return name;
-    }
-  }
-
-  // ----------------------------------------------------------
-  // "Sou João"
-  // "Sou o João"
-  // "Sou a Maria"
-  // "Eu sou João"
-  // "Eu sou o senhor João"
-  // "Eu sou a senhora Maria"
-  // ----------------------------------------------------------
-
-  match = value.match(
-    /^(?:eu\s+)?sou\s+(?:(?:o|a)\s+)?(?:(?:sr\.?|senhor|sra\.?|senhora)\s+)?(.+)$/i
-  );
-
-  if (match) {
-    const name = cleanName(match[1]);
-
-    if (
-      name &&
-      name.split(/\s+/).length <= 5 &&
-      !looksLikeServiceRequest(name)
-    ) {
-      return name;
-    }
-  }
-
-  // ----------------------------------------------------------
-  // "Sr. João"
-  // "Senhor João"
-  // "Sra. Maria"
-  // "Senhora Maria"
-  // ----------------------------------------------------------
-
-  match = value.match(
-    /^(?:sr\.?|senhor|sra\.?|senhora)\s+(.+)$/i
-  );
-
-  if (match) {
-    const name = cleanName(match[1]);
-
-    if (
-      name &&
-      name.split(/\s+/).length <= 5 &&
-      !looksLikeServiceRequest(name)
-    ) {
-      return name;
-    }
-  }
-
-  // ----------------------------------------------------------
-  // Se o assistente acabou de pedir o nome e a mensagem é
-  // simplesmente "João"
-  // ----------------------------------------------------------
-
-  const lastAssistant = [...previousHistory]
+  // Resposta simples ao pedido de nome, por exemplo apenas "Paulo".
+  // Não depende de o modelo interpretar a mensagem.
+  const normalizedCurrent = String(currentMessage || "").replace(/\s+/g, " ").trim();
+  const lastAssistant = [...history]
     .reverse()
     .find(item => item.role === "assistant");
 
+  const assistantAskedName =
+    !!lastAssistant &&
+    /diga-me o seu nome|qual é o seu nome|qual e o seu nome|para continuarmos.*nome/i.test(
+      String(lastAssistant.content || "")
+    );
+
   if (
-    lastAssistant &&
-    /nome|identifica|chamar|senhor|senhora/i.test(
-      lastAssistant.content
-    )
+    assistantAskedName &&
+    /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{1,60}$/.test(normalizedCurrent) &&
+    normalizedCurrent.split(/\s+/).length <= 5 &&
+    !looksLikeServiceRequest(normalizedCurrent) &&
+    !/^(olá|ola|oi|sim|não|nao|obrigado|obrigada|por favor|quanto|preço|preco|valor)$/i.test(normalizedCurrent)
   ) {
-    if (
-      /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{1,60}$/.test(value) &&
-      value.split(/\s+/).length <= 5 &&
-      !looksLikeServiceRequest(value)
-    ) {
-      return cleanName(value);
-    }
+    return cleanName(normalizedCurrent);
   }
 
-  return null;
+  return "";
 }
-
-// ============================================================
-// IDENTIFICAR PEDIDO DE SERVIÇO
-// ============================================================
-
-function looksLikeServiceRequest(text) {
-  const value = String(text || "").toLowerCase();
-
-  const words = [
-    "site",
-    "website",
-    "plataforma",
-    "software",
-    "sistema",
-    "tradução",
-    "traducao",
-    "marketing",
-    "design",
-    "cartaz",
-    "logotipo",
-    "logo",
-    "curso",
-    "inglês",
-    "ingles",
-    "música",
-    "musica",
-    "piano",
-    "partitura",
-    "namíbia",
-    "namibia",
-    "windhoek",
-    "oshakati",
-    "ongwediva",
-    "ondangwa",
-    "hospital",
-    "consulta",
-    "preço",
-    "preco",
-    "quanto custa",
-    "valor",
-    "pagamento",
-    "envio",
-    "encomenda",
-    "pacote",
-    "câmbio",
-    "cambio",
-    "importação",
-    "importacao",
-    "visto",
-    "visa"
-  ];
-
-  return words.some(word =>
-    value.includes(word)
-  );
-}
-
-// ============================================================
-// DETECTAR TRATAMENTO
-// ============================================================
-
-function detectLanguage(text, history = []) {
-  const sample = [...history.map(x => x.content || ""), text || ""].join(" ").toLowerCase();
-  const englishSignals = ["hello","hi","good morning","good afternoon","good evening","my name is","i'm","i am","i need","i want","please","how much","how does","where","when","what","why","can you","i would like","speak english","in english","call","phone"];
-  const portugueseSignals = ["olá","ola","bom dia","boa tarde","boa noite","meu nome","sou","preciso","quero","por favor","quanto custa","como funciona","onde","quando","o que","porquê","pode","falar","ligar"];
-  const en = englishSignals.filter(x => sample.includes(x)).length;
-  const pt = portugueseSignals.filter(x => sample.includes(x)).length;
-  return en > pt ? "en" : "pt";
-}
-
-function detectTitle(text, history = []) {
-  const allText = [
-    ...history.map(x => x.content || ""),
-    text || ""
-  ]
-    .join(" ")
-    .toLowerCase();
-
-  // Formas explícitas femininas
-  if (
-    /\bsra\.?\b/.test(allText) ||
-    /\bsenhora\b/.test(allText) ||
-    /\bsou a senhora\b/.test(allText) ||
-    /\bsou uma senhora\b/.test(allText) ||
-    /\b(?:mrs|ms|miss|madam|ma'am)\.?\b/.test(allText)
-  ) {
-    return "Sra.";
-  }
-
-  // Formas explícitas masculinas
-  if (
-    /\bsr\.?\b/.test(allText) ||
-    /\bsenhor\b/.test(allText) ||
-    /\bsou o senhor\b/.test(allText) ||
-    /\bsou um senhor\b/.test(allText) ||
-    /\bmr\.?\b/.test(allText)
-  ) {
-    return "Sr.";
-  }
-
-  // Se não houver tratamento explícito, use sinais linguísticos simples
-  // do próprio nome para evitar tratamentos claramente incorretos
-  // (ex.: "Emanuela" -> Sra.). Se não for possível determinar,
-  // mantém-se o tratamento formal padrão.
-  const nameText = String(text || "").trim().split(/\s+/)[0];
-  if (/^[A-Za-zÀ-ÿ]{3,}$/i.test(nameText) && /a$/i.test(nameText)) {
-    return "Sra.";
-  }
-
-  return "Sr.";
-}
-
-// ============================================================
-// VERIFICAR SE JÁ TEM NOME
-// ============================================================
 
 function findKnownClientName(context, history, currentMessage) {
   // 1. Nome vindo diretamente pelo portal
@@ -1485,6 +1151,13 @@ async function handleChat(request, env) {
       history
     );
 
+  const clientPhone =
+    findKnownClientPhone(
+      context,
+      history,
+      message
+    );
+
   // ----------------------------------------------------------
   // IDENTIFICAÇÃO OBRIGATÓRIA DO CLIENTE
   // ----------------------------------------------------------
@@ -1511,6 +1184,24 @@ async function handleChat(request, env) {
   // ----------------------------------------------------------
   // CLIENTE IDENTIFICADO
   // ----------------------------------------------------------
+  // ----------------------------------------------------------
+  // NÚMERO DE WHATSAPP OBRIGATÓRIO
+  // ----------------------------------------------------------
+  // Depois de identificar o nome, o atendimento também recolhe
+  // o WhatsApp do cliente antes de avançar para a IA.
+  if (!clientPhone) {
+    return json({
+      ok: true,
+      reply: "Obrigado, Sr./Sra. " + clientName + ". Para que o Sr. Eduardo possa retomar o atendimento consigo pelo WhatsApp quando estiver disponível, por favor, envie o seu número de WhatsApp.",
+      clientName,
+      clientPhone: null,
+      clientTitle,
+      formalName: null,
+      identified: true,
+      needsPhone: true
+    });
+  }
+
 
   const language = detectLanguage(message, history);
   const effectiveTitle = clientTitle || "Sr.";
@@ -1644,6 +1335,7 @@ ${documentContext}
     ok: true,
     reply,
     clientName,
+    clientPhone,
     clientTitle: effectiveTitle,
     formalName,
     identified: true
