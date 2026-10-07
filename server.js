@@ -1,10 +1,13 @@
 function findKnownClientName(context, history, currentMessage) {
   // 1. Nome vindo diretamente pelo portal
+  let contextName = "";
   if (context && context.nome) {
     const name = cleanName(context.nome);
-
     if (name) {
-      return name;
+      contextName = name;
+      if (name.split(/\s+/).filter(Boolean).length >= 2) {
+        return name;
+      }
     }
   }
 
@@ -32,6 +35,10 @@ function findKnownClientName(context, history, currentMessage) {
 
   if (foundCurrent) {
     return foundCurrent;
+  }
+
+  if (contextName) {
+    return contextName;
   }
 
   // Resposta simples ao pedido de nome, por exemplo apenas "Paulo".
