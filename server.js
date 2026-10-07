@@ -1398,10 +1398,27 @@ async function handleSaveConversation(request, env) {
     text: String(item?.text || "").slice(0,10000)
   }));
   const c = body?.context && typeof body.context === "object" ? body.context : {};
+
+  // Reconstituir identidade a partir da própria conversa quando o frontend
+  // ainda não tiver atualizado o contexto. Isto garante que o atendimento
+  // apareça no painel assim que o cliente informar os dados.
+  const detectionHistory = history.map(item => ({
+    role: item.type === "bot" ? "assistant" : "user",
+    content: item.text
+  }));
+  const detectedName = findKnownClientName(c, detectionHistory, "");
+  const detectedPhone = findKnownClientPhone(c, detectionHistory, "");
+  const suppliedName = String(body?.clientName || c.nome || "").trim();
+  const suppliedPhone = String(body?.clientPhone || c.telefone || "").trim();
+
   const record = {
     sessionId,
-    clientName: String(body?.clientName || c.nome || "").slice(0,120),
-    phone: String(body?.clientPhone || c.telefone || "").slice(0,40),
+    clientName: String(
+      detectedName || suppliedName
+    ).slice(0,120),
+    phone: String(
+      detectedPhone || suppliedPhone
+    ).slice(0,40),
     email: String(c.email || "").slice(0,160),
     service: String(c.servico || "").slice(0,200),
     request: String(c.pedido || "").slice(0,1000),
