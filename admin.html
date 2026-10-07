@@ -86,6 +86,9 @@ document.addEventListener("click",function(e){
 
 function renderDetail(){
   if(!selected)return;
+  var msgBox=$("msgs");
+  var preserveScroll=msgBox.dataset.sessionId===String(selected.sessionId);
+  var savedScrollTop=msgBox.scrollTop;
   document.body.classList.add("conversation-screen-open");
   document.body.style.overflow="hidden";
   $("layout").classList.add("conversation-open");
@@ -121,7 +124,8 @@ function renderDetail(){
     '</div>';
 
   $("msgs").innerHTML=(selected.history||[]).map(function(m){
-    return '<div class="row '+m.type+'"><div class="bubble '+m.type+'">'+esc(m.text)+'</div></div>';
+    var cleanText=String(m.text||"").replace(/\*+/g,"");
+    return '<div class="row '+m.type+'"><div class="bubble '+m.type+'">'+esc(cleanText)+'</div></div>';
   }).join("")||'<div class="empty">Sem mensagens.</div>';
 
   $("info").classList.remove("hidden");
@@ -129,9 +133,14 @@ function renderDetail(){
     '<div class="info-group"><span class="info-label">Serviço:</span><span class="info-value">'+esc(selected.service||"Atendimento geral")+'</span></div>'+
     '<div class="info-group"><span class="info-label">WhatsApp:</span><input id="phone" value="'+esc(selected.phone||"")+'" placeholder="Número do cliente"><button class="btn" onclick="savePhone()">Guardar</button></div>';
 
-  $("msgs").scrollTop=$("msgs").scrollHeight;
+  msgBox.dataset.sessionId=String(selected.sessionId);
+  if(preserveScroll){
+    msgBox.scrollTop=savedScrollTop;
+  }else{
+    msgBox.scrollTop=msgBox.scrollHeight;
+  }
 }
-function closeConversation(){selected=null;document.body.classList.remove("conversation-screen-open");document.body.style.overflow="";$("layout").classList.remove("conversation-open");$("layout").style.display="";$("layout").style.gridTemplateColumns="";$("layout").style.height="";$("layout").style.width="";$("layout").querySelector(".side").style.display="";$("layout").querySelector(".detail").style.display="";$("layout").querySelector(".detail").style.width="";$("layout").querySelector(".detail").style.height="";$("head").innerHTML='<div><b>Selecione uma conversa</b><div class="muted">O histórico aparecerá aqui.</div></div>';$("msgs").innerHTML='<div class="empty">Escolha um atendimento na lista.</div>';$("info").classList.add("hidden");renderList()}
+function closeConversation(){selected=null;delete $("msgs").dataset.sessionId;document.body.classList.remove("conversation-screen-open");document.body.style.overflow="";$("layout").classList.remove("conversation-open");$("layout").style.display="";$("layout").style.gridTemplateColumns="";$("layout").style.height="";$("layout").style.width="";$("layout").querySelector(".side").style.display="";$("layout").querySelector(".detail").style.display="";$("layout").querySelector(".detail").style.width="";$("layout").querySelector(".detail").style.height="";$("head").innerHTML='<div><b>Selecione uma conversa</b><div class="muted">O histórico aparecerá aqui.</div></div>';$("msgs").innerHTML='<div class="empty">Escolha um atendimento na lista.</div>';$("info").classList.add("hidden");renderList()}
 function savePhone(){var p=$("phone").value.trim();selected.phone=p;fetch(API_BASE+"/api/conversations/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_id:selected.sessionId,context:{nome:selected.clientName,telefone:p,email:selected.email,servico:selected.service,pedido:selected.request},history:selected.history,status:selected.status})}).then(load)}
 async function deleteConversation(){if(!selected)return;var name=selected.clientName||"esta conversa";if(!confirm("Eliminar definitivamente a conversa de "+name+"?\n\nEsta ação não pode ser desfeita."))return;var id=selected.sessionId;var r=await api("/api/admin/conversations/"+encodeURIComponent(id),{method:"DELETE"});var d=await r.json().catch(function(){return{}});if(!r.ok){alert(d.error||"Não foi possível eliminar a conversa.");return}selected=null;closeConversation();await load()}
 function whatsapp(){var p=String(selected.phone||"").replace(/\D/g,"");if(p.indexOf("00")===0)p=p.slice(2);if(p.charAt(0)==="0")p="244"+p.slice(1);if(!p){alert("Informe primeiro o número de WhatsApp do cliente.");return}var clean=String(selected.clientName||"").replace(/^(sr\.?|sra\.?|senhor|senhora)\s+/i,"");var title=/^(sra|senhora)\b/i.test(selected.clientName||"")?"Sra. ":"Sr. ";var msg="Olá, "+title+clean+". Aqui é o Eduardo Gabriel. Tomei conhecimento da sua conversa com a minha assistente Azny Gabriel e vou dar continuidade pessoalmente ao seu atendimento.";window.open("https://wa.me/"+p+"?text="+encodeURIComponent(msg),"_blank")}
