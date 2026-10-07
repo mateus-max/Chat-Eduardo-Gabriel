@@ -68,7 +68,26 @@ function last(c){var h=c.history||[];return h.length?String(h[h.length-1].text||
 var autoRefreshTimer=null;function startAutoRefresh(){if(autoRefreshTimer)return;autoRefreshTimer=setInterval(function(){load()},3000)}
 async function login(){var key=$("key").value.trim(),r=await fetch(API_BASE+"/api/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:key})}),d=await r.json().catch(function(){return{}});if(!r.ok||!d.token){$("err").textContent=d.error||"Não foi possível entrar.";return}token=d.token;sessionStorage.setItem("admin_token",token);$("login").classList.add("hidden");$("app").classList.remove("hidden");load();startAutoRefresh()}
 async function api(path,opt){opt=opt||{};opt.headers=Object.assign({},opt.headers||{},{Authorization:"Bearer "+token});var r=await fetch(API_BASE+path,opt);if(r.status===401){sessionStorage.removeItem("admin_token");location.reload()}return r}
-async function load(){var r=await api("/api/admin/conversations"),d=await r.json().catch(function(){return{}});if(!r.ok){alert(d.error||"Falha ao carregar.");return}items=d.conversations||[];$("count").textContent=items.length+" atendimento"+(items.length===1?"":"s");renderList();if(selected){for(var i=0;i<items.length;i++)if(items[i].sessionId===selected.sessionId){selected=items[i];renderDetail();break}}}
+function conversationSignature(c){if(!c)return"";var h=c.history||[],last=h.length?h[h.length-1]:null;return[String(c.sessionId||""),String(c.updatedAt||""),String(c.clientName||""),String(c.phone||""),String(h.length),String(last&&last.type||""),String(last&&last.text||"")].join("|")}
+async function load(){
+  var r=await api("/api/admin/conversations"),d=await r.json().catch(function(){return{}});
+  if(!r.ok){alert(d.error||"Falha ao carregar.");return}
+  var previousSelected=selected;
+  var previousSignature=previousSelected?conversationSignature(previousSelected):"";
+  items=d.conversations||[];
+  $("count").textContent=items.length+" atendimento"+(items.length===1?"":"s");
+  renderList();
+  if(previousSelected){
+    var fresh=null;
+    for(var i=0;i<items.length;i++)if(items[i].sessionId===previousSelected.sessionId){fresh=items[i];break}
+    if(fresh){
+      selected=fresh;
+      if(previousSignature!==conversationSignature(fresh)) renderDetail();
+    }else{
+      closeConversation();
+    }
+  }
+}
 function renderList(){var q=$("search").value.toLowerCase(),a=items.filter(function(c){return [c.clientName,c.phone,c.service,c.request].join(" ").toLowerCase().indexOf(q)>=0});$("list").innerHTML=a.length?a.map(function(c){return '<div class="item '+(selected&&selected.sessionId===c.sessionId?"active":"")+'" data-id="'+esc(c.sessionId)+'"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div class="name">'+esc(c.clientName||"Cliente não identificado")+'</div><button class="btn danger" style="padding:4px 7px;font-size:12px" title="Eliminar conversa" data-delete="'+esc(c.sessionId)+'">🗑️</button></div><div class="meta"><span>'+esc(c.service||"Atendimento geral")+'</span><span class="pill '+(c.status==="human"?"human":"")+'">'+(c.status==="human"?"Eduardo":"Azny")+'</span></div><div class="meta"><span>'+esc(last(c))+'</span><span>'+date(c.updatedAt)+'</span></div></div>'}).join(""):'<div class="empty">Ainda não há conversas guardadas.</div>';document.querySelectorAll(".item").forEach(function(el){el.onclick=function(e){if(e.target&&e.target.closest&&e.target.closest("[data-delete]"))return;selected=items.find(function(c){return c.sessionId===el.dataset.id})||null;renderList();renderDetail()};var del=el.querySelector("[data-delete]");if(del)del.onclick=function(e){e.stopPropagation();selected=items.find(function(c){return c.sessionId===del.dataset.delete})||null;deleteConversation()}})}
 function initials(name){return String(name||"Cliente").trim().split(/\s+/).slice(0,2).map(function(x){return x.charAt(0).toUpperCase()}).join("")||"C"}
 function editClientInfo(){toggleConversationMenu();var p=document.getElementById("phone");if(p){p.focus();p.select()}}
@@ -84,11 +103,22 @@ document.addEventListener("click",function(e){
   if(m&&w&&!w.contains(e.target))m.classList.remove("open");
 });
 
+function cleanAdminText(value){
+  return String(value==null?"":value)
+    .replace(/\*\*(.*?)\*\*/g,"$1")
+    .replace(/\*([^\n*]+)\*/g,"$1")
+    .replace(/\*+/g,"")
+    .replace(/\[([^\]]+)\]\([^\)]+\)/g,"$1")
+    .replace(/^\s{0,3}#{1,6}\s+/gm,"")
+    .replace(/\r\n/g,"\n");
+}
+
 function renderDetail(){
   if(!selected)return;
   var msgBox=$("msgs");
   var preserveScroll=msgBox.dataset.sessionId===String(selected.sessionId);
   var savedScrollTop=msgBox.scrollTop;
+  var wasAtBottom=(msgBox.scrollHeight-msgBox.scrollTop-msgBox.clientHeight)<=24;
   document.body.classList.add("conversation-screen-open");
   document.body.style.overflow="hidden";
   $("layout").classList.add("conversation-open");
@@ -124,7 +154,7 @@ function renderDetail(){
     '</div>';
 
   $("msgs").innerHTML=(selected.history||[]).map(function(m){
-    var cleanText=String(m.text||"").replace(/\*+/g,"");
+    var cleanText=cleanAdminText(m.text);
     return '<div class="row '+m.type+'"><div class="bubble '+m.type+'">'+esc(cleanText)+'</div></div>';
   }).join("")||'<div class="empty">Sem mensagens.</div>';
 
@@ -135,9 +165,12 @@ function renderDetail(){
 
   msgBox.dataset.sessionId=String(selected.sessionId);
   if(preserveScroll){
-    msgBox.scrollTop=savedScrollTop;
+    requestAnimationFrame(function(){
+      if(wasAtBottom) msgBox.scrollTop=msgBox.scrollHeight;
+      else msgBox.scrollTop=Math.min(savedScrollTop,msgBox.scrollHeight);
+    });
   }else{
-    msgBox.scrollTop=msgBox.scrollHeight;
+    requestAnimationFrame(function(){msgBox.scrollTop=msgBox.scrollHeight});
   }
 }
 function closeConversation(){selected=null;delete $("msgs").dataset.sessionId;document.body.classList.remove("conversation-screen-open");document.body.style.overflow="";$("layout").classList.remove("conversation-open");$("layout").style.display="";$("layout").style.gridTemplateColumns="";$("layout").style.height="";$("layout").style.width="";$("layout").querySelector(".side").style.display="";$("layout").querySelector(".detail").style.display="";$("layout").querySelector(".detail").style.width="";$("layout").querySelector(".detail").style.height="";$("head").innerHTML='<div><b>Selecione uma conversa</b><div class="muted">O histórico aparecerá aqui.</div></div>';$("msgs").innerHTML='<div class="empty">Escolha um atendimento na lista.</div>';$("info").classList.add("hidden");renderList()}
@@ -150,5 +183,5 @@ function exportJson(){download(JSON.stringify(selected,null,2),"atendimento-"+sa
 $("enter").onclick=login;$("key").onkeydown=function(e){if(e.key==="Enter")login()};$("refresh").onclick=load;$("logout").onclick=function(){sessionStorage.removeItem("admin_token");location.reload()};$("search").oninput=renderList;
 if(token){$("login").classList.add("hidden");$("app").classList.remove("hidden");load();startAutoRefresh()}
 window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();deferred=e;$("install").classList.remove("hidden")});$("install").onclick=function(){if(deferred){deferred.prompt();deferred=null;$("install").classList.add("hidden")}};
-if("serviceWorker" in navigator)navigator.serviceWorker.register("admin-sw.js").catch(function(){});
+if("serviceWorker" in navigator)navigator.serviceWorker.register("admin-sw.js?v=20261007-2235").catch(function(){});
 </script></body></html>
