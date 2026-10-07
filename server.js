@@ -178,7 +178,7 @@ function extractNameFromText(text, previousHistory = []) {
   // ----------------------------------------------------------
 
   let match = value.match(
-    /(?:meu nome\s*(?:é|e|eh)|meu nome chama-se|meu nome chama|chamo-me|chamo|eu sou)\s+(?:o\s+|a\s+)?(?:sr\.?\s+|senhor\s+|sra\.?\s+|senhora\s+)?(.+)/i
+    /(?:meu nome\s*(?:é|e|eh)|meu nome chama-se|meu nome chama|me chamo|chamo-me|chamo|eu sou)\s+(?:o\s+|a\s+)?(?:sr\.?\s+|senhor\s+|sra\.?\s+|senhora\s+)?(.+)/i
   );
 
   if (match) {
@@ -1175,6 +1175,13 @@ async function handleChat(request, env) {
       history
     );
 
+  const clientPhone =
+    findKnownClientPhone(
+      context,
+      history,
+      message
+    );
+
   // ----------------------------------------------------------
   // SE AINDA NÃO TEM NOME:
   // NÃO DEIXAR O MODELO COMEÇAR O ATENDIMENTO
@@ -1393,8 +1400,8 @@ async function handleSaveConversation(request, env) {
   const c = body?.context && typeof body.context === "object" ? body.context : {};
   const record = {
     sessionId,
-    clientName: String(c.nome || "").slice(0,120),
-    phone: String(c.telefone || "").slice(0,40),
+    clientName: String(body?.clientName || c.nome || "").slice(0,120),
+    phone: String(body?.clientPhone || c.telefone || "").slice(0,40),
     email: String(c.email || "").slice(0,160),
     service: String(c.servico || "").slice(0,200),
     request: String(c.pedido || "").slice(0,1000),
