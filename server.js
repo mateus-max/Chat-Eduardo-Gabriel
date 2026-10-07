@@ -1185,6 +1185,22 @@ async function handleChat(request, env) {
   // CLIENTE IDENTIFICADO
   // ----------------------------------------------------------
   // ----------------------------------------------------------
+  // NOME COMPLETO OBRIGATÓRIO
+  // ----------------------------------------------------------
+  if (clientName.split(/\s+/).filter(Boolean).length < 2) {
+    return json({
+      ok: true,
+      reply: "Obrigado. Para registarmos corretamente o seu atendimento, por favor, envie o seu nome completo (nome e apelido).",
+      clientName,
+      clientPhone: null,
+      clientTitle,
+      formalName: null,
+      identified: false,
+      needsFullName: true
+    });
+  }
+
+  // ----------------------------------------------------------
   // NÚMERO DE WHATSAPP OBRIGATÓRIO
   // ----------------------------------------------------------
   // Depois de identificar o nome, o atendimento também recolhe
@@ -1192,7 +1208,7 @@ async function handleChat(request, env) {
   if (!clientPhone) {
     return json({
       ok: true,
-      reply: "Obrigado, Sr./Sra. " + clientName + ". Para que o Sr. Eduardo possa retomar o atendimento consigo pelo WhatsApp quando estiver disponível, por favor, envie o seu número de WhatsApp.",
+      reply: "Obrigado, " + (clientTitle === "Sra." ? "Sra. " : "Sr. ") + clientName + ". Para que o Sr. Eduardo possa retomar o atendimento consigo pelo WhatsApp quando estiver disponível, por favor, envie o seu número de WhatsApp.",
       clientName,
       clientPhone: null,
       clientTitle,
@@ -1399,21 +1415,32 @@ async function handleSaveConversation(request, env) {
 
 async function handleAdminConversations(request, env) {
   if (!(await requireAdmin(request, env))) return json({ok:false,error:"Não autorizado."},401);
-  const listing = await env.CONVERSATIONS.list({prefix:"conversation:",limit:100});
-  const keys = listing.keys.map(x => x.name);
-  // Ler os valores em lote. O Workers KV suporta até 100 chaves
-  // por leitura em lote; aqui o limite da listagem também é 100.
-  const values = keys.length
-    ? await env.CONVERSATIONS.get(keys, "json")
-    : new Map();
-
   const conversations = [];
-  for (const key of keys) {
-    const item = values.get(key);
-    if (item) conversations.push(item);
-  }
+  let cursor = undefined;
+  let listComplete = true;
+
+  do {
+    const options = {prefix:"conversation:",limit:100};
+    if (cursor) options.cursor = cursor;
+    const listing = await env.CONVERSATIONS.list(options);
+    const keys = listing.keys.map(x => x.name);
+
+    for (let start = 0; start < keys.length; start += 100) {
+      const batch = keys.slice(start, start + 100);
+      if (!batch.length) continue;
+      const values = await env.CONVERSATIONS.get(batch, "json");
+      for (const key of batch) {
+        const item = values.get(key);
+        if (item) conversations.push(item);
+      }
+    }
+
+    listComplete = listing.list_complete;
+    cursor = listComplete ? undefined : listing.cursor;
+  } while (!listComplete && cursor);
+
   conversations.sort((a,b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
-  return json({ok:true,conversations,listComplete:listing.list_complete});
+  return json({ok:true,conversations,listComplete});
 }
 
 async function handleAdminConversation(request, env, sessionId) {
