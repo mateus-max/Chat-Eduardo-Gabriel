@@ -174,12 +174,11 @@ function extractNameFromText(text, previousHistory = []) {
     .trim();
 
   // ----------------------------------------------------------
-  // "Meu nome é João"
-  // "Meu nome e João"
+  // "Meu nome é João", "Chamo-me João", "Eu sou o senhor João"
   // ----------------------------------------------------------
 
   let match = value.match(
-    /(?:meu nome\s*(?:é|e|eh)|meu nome chama-se|meu nome chama|chamo-me|chamo)\s+(.+)/i
+    /(?:meu nome\s*(?:é|e|eh)|meu nome chama-se|meu nome chama|chamo-me|chamo|eu sou)\s+(?:o\s+|a\s+)?(?:sr\.?\s+|senhor\s+|sra\.?\s+|senhora\s+)?(.+)/i
   );
 
   if (match) {
