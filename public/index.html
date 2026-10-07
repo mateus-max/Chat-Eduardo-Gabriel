@@ -592,7 +592,8 @@ ${contextText}`;
       typingRow.remove();
       if(!data.reply) throw new Error("A IA não devolveu uma resposta.");
       add(data.reply,"bot");
-      if(data.clientName && !ctx.nome) ctx.nome=data.clientName;
+      if(data.clientName) ctx.nome=data.clientName;
+    if(data.clientPhone) ctx.telefone=data.clientPhone;
       history.push({text:contextText,type:"user"});
       history.push({text:data.reply,type:"bot"});
       queueConversationSave();
@@ -942,7 +943,7 @@ async function saveConversationToAdmin(){
 }
 function queueConversationSave(){
   clearTimeout(conversationSaveTimer);
-  conversationSaveTimer=setTimeout(saveConversationToAdmin,350);
+  conversationSaveTimer=setTimeout(saveConversationToAdmin,1200);
 }
 
 /* =========================================================
@@ -1539,6 +1540,9 @@ async function send(){
       "bot"
     );
 
+
+    if(data.clientName) ctx.nome=data.clientName;
+    if(data.clientPhone) ctx.telefone=data.clientPhone;
 
     if(data.quick_replies)
       quick(
