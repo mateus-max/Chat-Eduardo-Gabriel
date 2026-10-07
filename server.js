@@ -1580,10 +1580,18 @@ async function fetchHandler(request) {
     // --------------------------------------------------------
     // PAINEL WEB NO CLOUDFLARE
     // --------------------------------------------------------
-    if ((url.pathname === "/admin" || url.pathname === "/admin/") && env.ASSETS) {
+    if ((url.pathname === "/admin" || url.pathname === "/admin/" || url.pathname === "/admin.html") && env.ASSETS) {
       const adminUrl = new URL(request.url);
       adminUrl.pathname = "/admin.html";
-      return env.ASSETS.fetch(new Request(adminUrl.toString(), request));
+      const response = await env.ASSETS.fetch(new Request(adminUrl.toString(), request));
+      const headers = new Headers(response.headers);
+      headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+      headers.set("Pragma", "no-cache");
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers
+      });
     }
 
     // --------------------------------------------------------
