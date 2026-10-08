@@ -15,21 +15,76 @@ const MODEL = "openai/gpt-oss-20b";
 // ============================================================
 
 const VAPID_SUBJECT =
-  "https://chat-eduardo-gabriel.eduardongabriel354.workers.dev";
-const VAPID_PUBLIC_KEY_FALLBACK =
-  "BN-rIyUc3G_Y2bFJ0MprqeLD-cbSBS5_g4atOqpuplkKvrpuJ265p0_La3yHRXBlkDB7yKvIfUa5zVUNFa_Imqk";
+  "mailto:admin@eduardongabriel354.workers.dev";
 
-function pushConfig(env) {
-  const publicKey = String(env.VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY_FALLBACK).trim();
-  const privateKey = String(env.VAPID_PRIVATE_KEY || "").trim();
+function bytesToBase64Url(bytes) {
+  let binary = "";
+  const data = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  for (const byte of data) binary += String.fromCharCode(byte);
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
 
-  if (!publicKey || !privateKey) return null;
+async function createVapidConfig(env) {
+  if (!env.CONVERSATIONS) return null;
 
-  return {
-    publicKey,
-    privateKey,
+  const existing = await env.CONVERSATIONS.get("system:vapid", "json");
+  if (
+    existing &&
+    typeof existing.publicKey === "string" &&
+    typeof existing.privateKey === "string" &&
+    existing.publicKey.trim() &&
+    existing.privateKey.trim()
+  ) {
+    return {
+      publicKey: existing.publicKey.trim(),
+      privateKey: existing.privateKey.trim(),
+      subject: VAPID_SUBJECT
+    };
+  }
+
+  const pair = await crypto.subtle.generateKey(
+    {name: "ECDSA", namedCurve: "P-256"},
+    true,
+    ["sign", "verify"]
+  );
+
+  const publicRaw = await crypto.subtle.exportKey("raw", pair.publicKey);
+  const privateJwk = await crypto.subtle.exportKey("jwk", pair.privateKey);
+
+  if (!privateJwk.d) {
+    throw new Error("Não foi possível gerar a chave privada VAPID.");
+  }
+
+  const config = {
+    publicKey: bytesToBase64Url(publicRaw),
+    privateKey: String(privateJwk.d),
     subject: VAPID_SUBJECT
   };
+
+  await env.CONVERSATIONS.put(
+    "system:vapid",
+    JSON.stringify(config)
+  );
+
+  return config;
+}
+
+async function pushConfig(env) {
+  const secretPublic = String(env.VAPID_PUBLIC_KEY || "").trim();
+  const secretPrivate = String(env.VAPID_PRIVATE_KEY || "").trim();
+
+  if (secretPublic && secretPrivate) {
+    return {
+      publicKey: secretPublic,
+      privateKey: secretPrivate,
+      subject: VAPID_SUBJECT
+    };
+  }
+
+  return createVapidConfig(env);
 }
 
 function allowedPushEndpoint(endpoint) {
@@ -41,6 +96,7 @@ function allowedPushEndpoint(endpoint) {
 
     return (
       host === "fcm.googleapis.com" ||
+      host.endsWith(".fcm.googleapis.com") ||
       host === "push.services.mozilla.com" ||
       host.endsWith(".push.services.mozilla.com") ||
       host.endsWith(".push.apple.com")
@@ -56,15 +112,7 @@ async function pushSubscriptionId(endpoint) {
     new TextEncoder().encode(endpoint)
   );
 
-  let binary = "";
-  const bytes = new Uint8Array(digest);
-
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
+  return bytesToBase64Url(digest);
 }
 
 async function handlePushConfig(request, env) {
@@ -72,19 +120,28 @@ async function handlePushConfig(request, env) {
     return json({ok:false,error:"Não autorizado."},401);
   }
 
-  const config = pushConfig(env);
+  try {
+    const config = await pushConfig(env);
 
-  if (!config) {
+    if (!config) {
+      return json({
+        ok:false,
+        error:"Armazenamento de notificações ainda não está disponível."
+      },503);
+    }
+
+    return json({
+      ok:true,
+      publicKey:config.publicKey
+    });
+  } catch (error) {
+    console.error("Erro VAPID:", error);
     return json({
       ok:false,
-      error:"As notificações ainda não foram configuradas no Cloudflare."
+      error:"Não foi possível preparar as notificações.",
+      details:String(error?.message || error)
     },503);
   }
-
-  return json({
-    ok:true,
-    publicKey:config.publicKey
-  });
 }
 
 async function handlePushSubscribe(request, env) {
@@ -163,7 +220,7 @@ async function handlePushUnsubscribe(request, env) {
 }
 
 async function notifyAdminNewConversation(env, record) {
-  const config = pushConfig(env);
+  const config = await pushConfig(env);
 
   if (!config || !env.CONVERSATIONS) {
     return {configured:false,delivered:0,gone:0,failed:0};
@@ -196,10 +253,10 @@ async function notifyAdminNewConversation(env, record) {
         subscription,
         {
           title:
-            "Nova conversa — " +
+            "🔔 Novo cliente — " +
             (record.clientName || "Novo cliente"),
           body:
-            "Um novo cliente iniciou um atendimento no Chat Eduardo Gabriel.",
+            "Um novo atendimento foi iniciado no Chat Eduardo Gabriel.",
           url:"/admin",
           tag:"nova-conversa-" + record.sessionId
         },
@@ -227,6 +284,7 @@ async function notifyAdminNewConversation(env, record) {
         await env.CONVERSATIONS.delete(key.name);
         gone++;
       } else {
+        console.error("Falha ao enviar push:", error);
         failed++;
       }
     }
