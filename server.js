@@ -8,6 +8,232 @@ const GROQ_URL =
 
 const MODEL = "openai/gpt-oss-20b";
 
+
+
+// ============================================================
+// WEB PUSH — NOTIFICAÇÕES DO PAINEL ADMINISTRATIVO
+// ============================================================
+
+const VAPID_SUBJECT =
+  "https://chat-eduardo-gabriel.eduardongabriel354.workers.dev";
+
+function pushConfig(env) {
+  const publicKey = String(env.VAPID_PUBLIC_KEY || "").trim();
+  const privateKey = String(env.VAPID_PRIVATE_KEY || "").trim();
+
+  if (!publicKey || !privateKey) return null;
+
+  return {
+    publicKey,
+    privateKey,
+    subject: VAPID_SUBJECT
+  };
+}
+
+function allowedPushEndpoint(endpoint) {
+  try {
+    const url = new URL(endpoint);
+    if (url.protocol !== "https:") return false;
+
+    const host = url.hostname.toLowerCase();
+
+    return (
+      host === "fcm.googleapis.com" ||
+      host === "push.services.mozilla.com" ||
+      host.endsWith(".push.services.mozilla.com") ||
+      host.endsWith(".push.apple.com")
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function pushSubscriptionId(endpoint) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(endpoint)
+  );
+
+  let binary = "";
+  const bytes = new Uint8Array(digest);
+
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+async function handlePushConfig(request, env) {
+  if (!(await requireAdmin(request, env))) {
+    return json({ok:false,error:"Não autorizado."},401);
+  }
+
+  const config = pushConfig(env);
+
+  if (!config) {
+    return json({
+      ok:false,
+      error:"As notificações ainda não foram configuradas no Cloudflare."
+    },503);
+  }
+
+  return json({
+    ok:true,
+    publicKey:config.publicKey
+  });
+}
+
+async function handlePushSubscribe(request, env) {
+  if (!(await requireAdmin(request, env))) {
+    return json({ok:false,error:"Não autorizado."},401);
+  }
+
+  if (!env.CONVERSATIONS) {
+    return json({ok:false,error:"Armazenamento ainda não configurado."},503);
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ok:false,error:"Assinatura inválida."},400);
+  }
+
+  const subscription = body?.subscription;
+  const endpoint = String(subscription?.endpoint || "").trim();
+
+  if (
+    !endpoint ||
+    !allowedPushEndpoint(endpoint) ||
+    !subscription?.keys?.p256dh ||
+    !subscription?.keys?.auth
+  ) {
+    return json({
+      ok:false,
+      error:"Assinatura de notificações inválida."
+    },400);
+  }
+
+  const id = await pushSubscriptionId(endpoint);
+
+  await env.CONVERSATIONS.put(
+    "push:admin:" + id,
+    JSON.stringify({
+      endpoint,
+      keys:{
+        p256dh:String(subscription.keys.p256dh),
+        auth:String(subscription.keys.auth)
+      },
+      updatedAt:new Date().toISOString()
+    })
+  );
+
+  return json({ok:true,saved:true});
+}
+
+async function handlePushUnsubscribe(request, env) {
+  if (!(await requireAdmin(request, env))) {
+    return json({ok:false,error:"Não autorizado."},401);
+  }
+
+  if (!env.CONVERSATIONS) {
+    return json({ok:false,error:"Armazenamento ainda não configurado."},503);
+  }
+
+  let body = {};
+  try {
+    body = await request.json();
+  } catch {}
+
+  const endpoint = String(body?.endpoint || "").trim();
+
+  if (!endpoint) {
+    return json({ok:false,error:"Endpoint não informado."},400);
+  }
+
+  const id = await pushSubscriptionId(endpoint);
+
+  await env.CONVERSATIONS.delete("push:admin:" + id);
+
+  return json({ok:true,deleted:true});
+}
+
+async function notifyAdminNewConversation(env, record) {
+  const config = pushConfig(env);
+
+  if (!config || !env.CONVERSATIONS) {
+    return {configured:false,delivered:0,gone:0,failed:0};
+  }
+
+  const listing = await env.CONVERSATIONS.list({
+    prefix:"push:admin:",
+    limit:100
+  });
+
+  if (!listing.keys.length) {
+    return {configured:true,delivered:0,gone:0,failed:0};
+  }
+
+  const {sendPushNotification} =
+    await import("@mmmike/web-push/send");
+
+  let delivered = 0;
+  let gone = 0;
+  let failed = 0;
+
+  for (const key of listing.keys) {
+    const subscription =
+      await env.CONVERSATIONS.get(key.name,"json");
+
+    if (!subscription) continue;
+
+    try {
+      const result = await sendPushNotification(
+        subscription,
+        {
+          title:
+            "Nova conversa — " +
+            (record.clientName || "Novo cliente"),
+          body:
+            "Um novo cliente iniciou um atendimento no Chat Eduardo Gabriel.",
+          url:"/admin",
+          tag:"nova-conversa-" + record.sessionId
+        },
+        {
+          subject:config.subject,
+          publicKey:config.publicKey,
+          privateKey:config.privateKey
+        },
+        {
+          ttl:120,
+          urgency:"high"
+        }
+      );
+
+      if (!result) {
+        await env.CONVERSATIONS.delete(key.name);
+        gone++;
+      } else {
+        delivered++;
+      }
+    } catch (error) {
+      const status = Number(error?.statusCode || 0);
+
+      if (status === 404 || status === 410) {
+        await env.CONVERSATIONS.delete(key.name);
+        gone++;
+      } else {
+        failed++;
+      }
+    }
+  }
+
+  return {configured:true,delivered,gone,failed};
+}
+
+
 // ============================================================
 // CONFIGURAÇÃO
 // ============================================================
@@ -1412,6 +1638,24 @@ async function handleSaveConversation(request, env) {
   const suppliedName = String(body?.clientName || c.nome || "").trim();
   const suppliedPhone = String(body?.clientPhone || c.telefone || "").trim();
 
+  const existing = await env.CONVERSATIONS.get(
+    "conversation:" + sessionId,
+    "json"
+  );
+
+  const hadClientMessage = Boolean(
+    existing &&
+    Array.isArray(existing.history) &&
+    existing.history.some(item => item && item.type === "user")
+  );
+
+  const hasClientMessageNow = history.some(
+    item => item && item.type === "user"
+  );
+
+  const firstClientMessage =
+    hasClientMessageNow && !hadClientMessage;
+
   const record = {
     sessionId,
     clientName: String(
@@ -1425,9 +1669,30 @@ async function handleSaveConversation(request, env) {
     request: String(c.pedido || "").slice(0,1000),
     status: body?.status === "human" ? "human" : "bot",
     updatedAt: new Date().toISOString(),
-    history
+    history,
+    pushNotifiedAt: existing?.pushNotifiedAt || null
   };
-  await env.CONVERSATIONS.put("conversation:" + sessionId, JSON.stringify(record));
+
+  await env.CONVERSATIONS.put(
+    "conversation:" + sessionId,
+    JSON.stringify(record)
+  );
+
+  if (firstClientMessage && !record.pushNotifiedAt) {
+    const pushResult =
+      await notifyAdminNewConversation(env,record);
+
+    if (pushResult.delivered > 0) {
+      record.pushNotifiedAt =
+        new Date().toISOString();
+
+      await env.CONVERSATIONS.put(
+        "conversation:" + sessionId,
+        JSON.stringify(record)
+      );
+    }
+  }
+
   return json({ok:true,saved:true});
 }
 
@@ -1508,6 +1773,28 @@ async function fetchHandler(request) {
           : undefined,
       CONVERSATIONS:
         (typeof CONVERSATIONS !== "undefined" ? CONVERSATIONS : undefined),
+      VAPID_PUBLIC_KEY:
+        (typeof VAPID_PUBLIC_KEY !== "undefined" &&
+         typeof VAPID_PUBLIC_KEY === "string" &&
+         VAPID_PUBLIC_KEY.trim())
+          ? VAPID_PUBLIC_KEY.trim()
+          : (typeof process !== "undefined" &&
+             process.env &&
+             typeof process.env.VAPID_PUBLIC_KEY === "string" &&
+             process.env.VAPID_PUBLIC_KEY.trim())
+              ? process.env.VAPID_PUBLIC_KEY.trim()
+              : undefined,
+      VAPID_PRIVATE_KEY:
+        (typeof VAPID_PRIVATE_KEY !== "undefined" &&
+         typeof VAPID_PRIVATE_KEY === "string" &&
+         VAPID_PRIVATE_KEY.trim())
+          ? VAPID_PRIVATE_KEY.trim()
+          : (typeof process !== "undefined" &&
+             process.env &&
+             typeof process.env.VAPID_PRIVATE_KEY === "string" &&
+             process.env.VAPID_PRIVATE_KEY.trim())
+              ? process.env.VAPID_PRIVATE_KEY.trim()
+              : undefined,
       ASSETS:
         (typeof ASSETS !== "undefined" && ASSETS)
           ? ASSETS
@@ -1541,6 +1828,15 @@ async function fetchHandler(request) {
     }
     if (url.pathname === "/api/conversations/save" && request.method === "POST") {
       return handleSaveConversation(request, env);
+    }
+    if (url.pathname === "/api/push/config" && request.method === "GET") {
+      return handlePushConfig(request, env);
+    }
+    if (url.pathname === "/api/push/subscribe" && request.method === "POST") {
+      return handlePushSubscribe(request, env);
+    }
+    if (url.pathname === "/api/push/unsubscribe" && request.method === "POST") {
+      return handlePushUnsubscribe(request, env);
     }
     if (url.pathname === "/api/admin/conversations" && request.method === "GET") {
       return handleAdminConversations(request, env);
