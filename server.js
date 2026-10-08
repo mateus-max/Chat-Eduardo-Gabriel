@@ -553,7 +553,7 @@ function extractNameFromText(text, previousHistory = []) {
 
   if (
     lastAssistant &&
-    /nome|identifica|chamar|senhor|senhora/i.test(
+    /nome|name|identifica|identify|chamar|senhor|senhora|sir|mr\.?|mrs\.?|ms\.?|madam/i.test(
       lastAssistant.content
     )
   ) {
