@@ -66,7 +66,7 @@ function safe(v){return String(v||"cliente").replace(/[^a-z0-9_-]+/gi,"-").toLow
 function date(v){try{return new Date(v).toLocaleString("pt-AO",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}catch(e){return""}}
 function last(c){var h=c.history||[];return h.length?String(h[h.length-1].text||"").slice(0,48):"Sem mensagens"}
 var autoRefreshTimer=null;function startAutoRefresh(){if(autoRefreshTimer)return;autoRefreshTimer=setInterval(function(){load()},3000)}
-async function login(){var key=$("key").value.trim(),r=await fetch(API_BASE+"/api/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:key})}),d=await r.json().catch(function(){return{}});if(!r.ok||!d.token){$("err").textContent=d.error||"Não foi possível entrar.";return}token=d.token;sessionStorage.setItem("admin_token",token);$("login").classList.add("hidden");$("app").classList.remove("hidden");load();startAutoRefresh()}
+async function login(){var key=$("key").value.trim(),r=await fetch(API_BASE+"/api/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:key})}),d=await r.json().catch(function(){return{}});if(!r.ok||!d.token){$("err").textContent=d.error||"Não foi possível entrar.";return}token=d.token;sessionStorage.setItem("admin_token",token);$("login").classList.add("hidden");$("app").classList.remove("hidden");load();startAutoRefresh();if(window.setupAdminNotifications)window.setupAdminNotifications()}
 async function api(path,opt){opt=opt||{};opt.headers=Object.assign({},opt.headers||{},{Authorization:"Bearer "+token});var r=await fetch(API_BASE+path,opt);if(r.status===401){sessionStorage.removeItem("admin_token");location.reload()}return r}
 function conversationSignature(c){if(!c)return"";var h=c.history||[],last=h.length?h[h.length-1]:null;return[String(c.sessionId||""),String(c.updatedAt||""),String(c.clientName||""),String(c.phone||""),String(h.length),String(last&&last.type||""),String(last&&last.text||"")].join("|")}
 async function load(){
@@ -181,7 +181,7 @@ function download(t,n,type){var a=document.createElement("a");a.href=URL.createO
 function exportTxt(){var h=(selected.history||[]).map(function(m){return (m.type==="user"?"CLIENTE":"AZNY")+": "+m.text}).join("\n");download("ATENDIMENTO — "+(selected.clientName||"Cliente")+"\nTelefone: "+(selected.phone||"—")+"\n\n"+h,"atendimento-"+safe(selected.clientName)+".txt","text/plain;charset=utf-8")}
 function exportJson(){download(JSON.stringify(selected,null,2),"atendimento-"+safe(selected.clientName)+".json","application/json;charset=utf-8")}
 $("enter").onclick=login;$("key").onkeydown=function(e){if(e.key==="Enter")login()};$("refresh").onclick=load;$("logout").onclick=function(){sessionStorage.removeItem("admin_token");location.reload()};$("search").oninput=renderList;
-if(token){$("login").classList.add("hidden");$("app").classList.remove("hidden");load();startAutoRefresh()}
+if(token){$("login").classList.add("hidden");$("app").classList.remove("hidden");load();startAutoRefresh();if(window.setupAdminNotifications)window.setupAdminNotifications()}
 window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();deferred=e;$("install").classList.remove("hidden")});$("install").onclick=function(){if(deferred){deferred.prompt();deferred=null;$("install").classList.add("hidden")}};
 if("serviceWorker" in navigator)navigator.serviceWorker.register("admin-sw.js?v=20261007-2235").catch(function(){});
-</script></body></html>
+</script><script src="/admin-push.js?v=20261008-01"></script></body></html>
