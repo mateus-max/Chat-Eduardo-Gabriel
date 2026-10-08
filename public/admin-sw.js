@@ -45,3 +45,46 @@ self.addEventListener("fetch", event => {
       .catch(() => caches.match(request).then(cached => cached || caches.match("/admin.html")))
   );
 });
+
+self.addEventListener("push", event => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch(e) {}
+
+  event.waitUntil(
+    self.registration.showNotification(
+      data.title || "Chat Eduardo Gabriel",
+      {
+        body: data.body || "Novo atendimento recebido.",
+        icon: "/avatar.jpg",
+        badge: "/avatar.jpg",
+        tag: data.tag || "chat-eduardo",
+        renotify: true,
+        silent: false,
+        vibrate: [180,80,180,80,180,80,180],
+        data: { url: data.url || "/admin" }
+      }
+    )
+  );
+});
+
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  const target = event.notification.data && event.notification.data.url
+    ? event.notification.data.url
+    : "/admin";
+
+  event.waitUntil(
+    self.clients.matchAll({
+      type: "window",
+      includeUncontrolled: true
+    }).then(clients => {
+      const open = clients.find(client => {
+        try { return new URL(client.url).pathname === target; }
+        catch(e) { return false; }
+      });
+      return open && "focus" in open
+        ? open.focus()
+        : self.clients.openWindow(target);
+    })
+  );
+});
