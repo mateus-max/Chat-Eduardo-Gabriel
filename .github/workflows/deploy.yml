@@ -9,6 +9,12 @@ on:
       - "public/**"
       - "wrangler.jsonc"
       - "legacy-proxy.js"
+      - "admin.html"
+      - "admin-sw.js"
+      - "admin-push.js"
+      - "manifest.webmanifest"
+      - "avatar.jpg"
+      - "package.json"
       - "wrangler-legacy.jsonc"
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
