@@ -293,6 +293,107 @@ body{
 .service-form-status{font-size:12px;color:#08704c;margin-top:8px}
 @media(max-width:650px){.service-form-grid{grid-template-columns:1fr}.service-form-field.full{grid-column:auto}}
 </style>
+
+<style id="ui-v4-override">
+/* UI v4 — força o novo layout também quando uma versão antiga estiver em cache */
+html,body{width:100%;min-height:100%;margin:0}
+body{
+  background:#eef3f8 !important;
+  align-items:stretch !important;
+  justify-content:stretch !important;
+}
+.app{
+  width:100% !important;
+  height:100dvh !important;
+  max-width:none !important;
+  max-height:none !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+}
+.head{
+  min-height:76px !important;
+  padding:10px 16px !important;
+  gap:12px !important;
+  background:linear-gradient(135deg,#061a35 0%,#0d3565 100%) !important;
+}
+.avatar{
+  width:58px !important;
+  height:58px !important;
+  min-width:58px !important;
+  border-radius:50% !important;
+  aspect-ratio:1/1 !important;
+  overflow:hidden !important;
+  flex:0 0 58px !important;
+  border:2px solid rgba(255,255,255,.95) !important;
+  box-shadow:0 2px 10px rgba(0,0,0,.22) !important;
+  background:#fff !important;
+}
+.avatar img{
+  display:block !important;
+  width:100% !important;
+  height:100% !important;
+  max-width:none !important;
+  max-height:none !important;
+  border-radius:50% !important;
+  object-fit:cover !important;
+  object-position:center !important;
+}
+.head strong{font-size:17px !important;line-height:1.2 !important}
+.online{font-size:12px !important;margin-top:3px !important}
+.chat{
+  background:#f3f6f9 !important;
+  padding:14px 12px 10px !important;
+}
+.quick{
+  min-height:0 !important;
+  padding:7px 10px !important;
+  border-top:1px solid #dfe6ee !important;
+}
+.composer{
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom)) !important;
+  gap:7px !important;
+  border-top:1px solid #dce4ec !important;
+}
+.composer-tools{
+  width:100% !important;
+  padding:0 !important;
+  gap:7px !important;
+  align-items:center !important;
+}
+.composer-tools button{
+  flex:0 0 42px !important;
+  width:42px !important;
+  height:42px !important;
+}
+.composer-tools input{
+  min-width:0 !important;
+  height:42px !important;
+}
+.composer-tools #send{
+  flex:0 0 42px !important;
+  width:42px !important;
+  height:42px !important;
+}
+.notice{display:none !important}
+@media(max-width:650px){
+  body{background:#f3f6f9 !important}
+  .head{
+    min-height:68px !important;
+    padding:7px 12px !important;
+  }
+  .avatar{
+    width:52px !important;
+    height:52px !important;
+    min-width:52px !important;
+    flex-basis:52px !important;
+  }
+  .head strong{font-size:16px !important}
+  .online{font-size:11px !important}
+  .chat{padding:10px 8px !important}
+  .row{max-width:96% !important}
+  .msg{font-size:14px !important}
+}
+</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
