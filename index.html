@@ -836,8 +836,14 @@ function detectarIdiomaInicial(text){
 function tratamentoCliente(){
 
   const nome = nomeCliente();
+  const idioma = ctx.idioma || "pt";
+  const tratamento = detectarTratamento(nome);
 
-  return `${detectarTratamento(nome)}${nome ? " " + nome : ""}`;
+  if(idioma === "en"){
+    return `${tratamento === "Senhora" ? "Ms." : "Mr."}${nome ? " " + nome : ""}`;
+  }
+
+  return `${tratamento}${nome ? " " + nome : ""}`;
 
 }
 
@@ -1448,7 +1454,9 @@ async function send(){
         tratamentoCliente(),
 
       instrucao_tratamento:
-        "Trate o cliente de forma respeitosa como Senhor [Nome] ou Senhora [Nome] quando for natural. Não é necessário repetir o nome do cliente em todas as respostas; use o nome apenas quando contribuir para a naturalidade do atendimento."
+        ctx.idioma === "en"
+          ? "Address the client formally as Mr. [Full Name] for men or Ms. [Full Name] for women. Keep the conversation entirely in English."
+          : "Trate o cliente formalmente como Sr. [Nome completo] ou Sra. [Nome completo]. Mantenha a conversa inteiramente em Português."
 
     },
 
