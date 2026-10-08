@@ -1295,6 +1295,10 @@ Use esses dados para evitar repetir perguntas.
       : "";
 
 
+  const ownerContacts =
+    language === "en"
+      ? "OFFICIAL OWNER CONTACT NUMBERS: Namibia/MTC: 0812194801. Angola: 931057760."
+      : "CONTACTOS OFICIAIS DO PROPRIETÁRIO: Namíbia/MTC: 0812194801. Angola: 931057760.";
   const ownerName =
     language === "en"
       ? "Mr. Eduardo Ngongoyove Gabriel"
@@ -1327,6 +1331,15 @@ ${contextText}
 ${scheduleContext}
 
 ${KNOWLEDGE_BASE}
+
+${ownerContacts}
+
+REGRAS ESPECÍFICAS SOBRE CONTACTOS DO PROPRIETÁRIO:
+- Se o cliente pedir o número do Sr. Eduardo para MTC, Namíbia ou contacto da Namíbia, forneça EXATAMENTE 0812194801.
+- Se o cliente pedir o número do Sr. Eduardo de Angola, contacto de Angola ou WhatsApp de Angola, forneça EXATAMENTE 931057760.
+- Não troque os dois números e não invente outro número.
+- Se o cliente disser apenas "número do Eduardo" sem indicar o país, peça uma única clarificação: "Pretende o número da Namíbia/MTC ou o número de Angola?"
+- Estes números são contactos do Sr. Eduardo e não devem ser confundidos com o número de WhatsApp que identifica o cliente.
 
 REGRAS CRÍTICAS:
 
