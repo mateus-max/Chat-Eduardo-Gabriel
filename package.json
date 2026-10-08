@@ -9,5 +9,8 @@
   "devDependencies": {
     "wrangler": "latest"
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@mmmike/web-push": "^1.3.0"
+  }
 }
