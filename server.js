@@ -1496,7 +1496,6 @@ function outOfHoursReply(language, isSunday = false) {
 
 function detectServiceTopic(text, history = [], context = {}) {
   const explicit = String(context?.servico || "").trim();
-  if (explicit) return explicit;
 
   const sample = [
     ...history.map(x => x?.content || ""),
@@ -1524,7 +1523,7 @@ function detectServiceTopic(text, history = [], context = {}) {
   for (const rule of rules) {
     if (rule.words.some(word => sample.includes(word))) return rule.name;
   }
-  return "";
+  return explicit;
 }
 
 // ============================================================
@@ -1692,7 +1691,7 @@ async function handleChat(request, env) {
   // NÚMERO DE WHATSAPP OBRIGATÓRIO
   // ----------------------------------------------------------
   if (!clientPhone) {
-    const formal = (clientTitle === "Sra." ? "Sra. " : "Sr. ") + clientName;
+    const formal = clientTitle + " " + clientName;
     return json({
       ok: true,
       reply:
@@ -1837,8 +1836,8 @@ async function handleChat(request, env) {
     !alreadyAskedSchedule
   ) {
     reply += language === "en"
-      ? "\\n\\nWould you like to schedule this service?"
-      : "\\n\\nDeseja agendar este serviço?";
+      ? "\n\nWould you like to schedule this service?"
+      : "\n\nDeseja agendar este serviço?";
   }
 
   // ----------------------------------------------------------
