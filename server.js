@@ -397,6 +397,29 @@ function normalizeHistory(history) {
 }
 
 // ============================================================
+// DETECÇÃO DO IDIOMA DA CONVERSA
+// ============================================================
+
+function detectLanguage(text, history = [], context = {}) {
+  const explicit = String(context?.idioma || context?.language || "").trim().toLowerCase();
+  if (/^(en|en-us|en-gb|english|ingl[eê]s)$/.test(explicit)) return "en";
+  if (/^(pt|pt-ao|pt-br|portugu[eê]s|portuguese)$/.test(explicit)) return "pt";
+
+  const firstUser = [...history].reverse().find(item => item && item.role === "user");
+  const sample = String(firstUser?.content || text || "").toLowerCase();
+  const ptWords = ["olá","ola","oi","bom dia","boa tarde","boa noite","preciso","gostaria","quero","tenho","sou","me chamo","meu nome","senhor","senhora","preço","preco","quanto","serviço","servico","ajuda","número","numero","whatsapp","por favor","obrigado","obrigada","pode","podem"];
+  const enWords = ["hello","hi","good morning","good afternoon","good evening","i need","i would like","i want","i have","i am","i'm","my name","mr","mrs","ms","sir","madam","price","how much","service","help","number","whatsapp","please","thank you","can you","could you","where","what","when"];
+  let pt = 0, en = 0;
+  for (const word of ptWords) if (sample.includes(word)) pt++;
+  for (const word of enWords) if (sample.includes(word)) en++;
+  if (en > pt) return "en";
+  if (pt > en) return "pt";
+  if (/\b(the|this|that|with|for|from|about|please|can)\b/i.test(sample)) return "en";
+  if (/\b(o|a|os|as|com|para|por|sobre|pode|preciso)\b/i.test(sample)) return "pt";
+  return "pt";
+}
+
+// ============================================================
 // LIMPAR NOME
 // ============================================================
 
@@ -411,13 +434,13 @@ function normalizePhoneNumber(value) {
 function extractPhoneFromText(text, previousHistory = []) {
   if (!text) return "";
   const value = String(text).replace(/\s+/g, " ").trim();
-  const explicit = value.match(/(?:whatsapp|telefone|n[uú]mero|contacto|contato|tel(?:efone)?)\s*(?:é|e|:|-)?\s*(\+?\d[\d\s().-]{7,18}\d)/i);
+  const explicit = value.match(/(?:whatsapp|telefone|n[uú]mero|contacto|contato|tel(?:efone)?|phone|number|mobile|cell)\s*(?:é|e|is|:|-)?\s*(\+?\d[\d\s().-]{7,18}\d)/i);
   if (explicit) {
     const normalized = normalizePhoneNumber(explicit[1]);
     if (normalized) return normalized;
   }
   const lastAssistant = [...previousHistory].reverse().find(item => item.role === "assistant");
-  if (lastAssistant && /(?:n[uú]mero|telefone|whatsapp|contacto|contato)/i.test(String(lastAssistant.content || ""))) {
+  if (lastAssistant && /(?:n[uú]mero|telefone|whatsapp|contacto|contato|phone|number|mobile|cell)/i.test(String(lastAssistant.content || ""))) {
     const standalone = value.match(/(?:\+?244[\s.-]?)?9(?:[\s.-]?\d){8}/);
     if (standalone) return normalizePhoneNumber(standalone[0]);
   }
@@ -464,7 +487,7 @@ function extractNameFromText(text, previousHistory = []) {
   // ----------------------------------------------------------
 
   let match = value.match(
-    /(?:meu nome\s*(?:é|e|eh)|meu nome chama-se|meu nome chama|me chamo|chamo-me|chamo|eu sou)\s+(?:o\s+|a\s+)?(?:sr\.?\s+|senhor\s+|sra\.?\s+|senhora\s+)?(.+)/i
+    /(?:meu nome\s*(?:é|e|eh)|meu nome chama-se|meu nome chama|me chamo|chamo-me|chamo|eu sou|my name\s*(?:is|:)|i am|i'm|this is)\s+(?:o\s+|a\s+|the\s+)?(?:sr\.?\s+|senhor\s+|sra\.?\s+|senhora\s+|mr\.?\s+|mrs\.?\s+|ms\.?\s+|sir\s+|madam\s+)?(.+)/i
   );
 
   if (match) {
@@ -505,7 +528,7 @@ function extractNameFromText(text, previousHistory = []) {
   // ----------------------------------------------------------
 
   match = value.match(
-    /^(?:sr\.?|senhor|sra\.?|senhora)\s+(.+)$/i
+    /^(?:sr\.?|senhor|sra\.?|senhora|mr\.?|mrs\.?|ms\.?|sir|madam)\s+(.+)$/i
   );
 
   if (match) {
@@ -616,7 +639,10 @@ function detectTitle(text, history = []) {
     /\bsra\.?\b/.test(allText) ||
     /\bsenhora\b/.test(allText) ||
     /\bsou a senhora\b/.test(allText) ||
-    /\bsou uma senhora\b/.test(allText)
+    /\bsou uma senhora\b/.test(allText) ||
+    /\bmrs\.?\b/.test(allText) ||
+    /\bms\.?\b/.test(allText) ||
+    /\bmadam\b/.test(allText)
   ) {
     return "Sra.";
   }
@@ -626,7 +652,9 @@ function detectTitle(text, history = []) {
     /\bsr\.?\b/.test(allText) ||
     /\bsenhor\b/.test(allText) ||
     /\bsou o senhor\b/.test(allText) ||
-    /\bsou um senhor\b/.test(allText)
+    /\bsou um senhor\b/.test(allText) ||
+    /\bmr\.?\b/.test(allText) ||
+    /\bsir\b/.test(allText)
   ) {
     return "Sr.";
   }
@@ -1130,9 +1158,15 @@ na base de conhecimento.
 COMPORTAMENTO GERAL
 ------------------------------------------------------------
 
-Responder principalmente em Português.
+IDIOMA DA CONVERSA
+------------------------------------------------------------
 
-Pode conversar em Inglês se o cliente escrever em Inglês.
+A primeira mensagem do cliente define o idioma principal da conversa.
+
+Se a primeira mensagem for em Inglês, toda a conversa, incluindo a apresentação e os pedidos de nome/WhatsApp, deve ser em Inglês.
+Se a primeira mensagem for em Português, toda a conversa, incluindo a apresentação e os pedidos de nome/WhatsApp, deve ser em Português.
+Se houver mistura, use o idioma predominante da primeira mensagem.
+Se o cliente pedir explicitamente para mudar de idioma, acompanhe o pedido.
 
 Manter linguagem profissional, educada e natural.
 
@@ -1171,7 +1205,8 @@ Sempre manter tratamento formal.
 function buildSystemPrompt({
   clientName,
   clientTitle,
-  context
+  context,
+  language
 }) {
   const identity =
     clientName
@@ -1191,15 +1226,15 @@ IMPORTANTE:
 CLIENTE AINDA NÃO IDENTIFICADO.
 
 REGRA ABSOLUTA:
-Antes de falar sobre serviços, preços ou qualquer assunto
-de atendimento, peça o nome do cliente.
-
-Use somente:
-
-"Antes de continuarmos, por favor, diga-me o seu nome."
-
-Não faça outra pergunta nesse momento.
+O cliente precisa fornecer nome completo e número de WhatsApp.
+Se um desses dados já tiver sido fornecido, peça apenas o dado que falta.
+Nunca repita uma pergunta já respondida.
 `;
+
+  const languageInstruction =
+    language === "en"
+      ? "IDIOMA OBRIGATÓRIO: INGLÊS. Responda exclusivamente em Inglês durante esta conversa. A apresentação e todos os pedidos de identificação também devem ser em Inglês. Não mude para Português sem pedido explícito."
+      : "IDIOMA OBRIGATÓRIO: PORTUGUÊS. Responda exclusivamente em Português durante esta conversa. A apresentação e todos os pedidos de identificação também devem ser em Português. Não mude para Inglês sem pedido explícito.";
 
   const contextText =
     context && Object.keys(context).length
@@ -1214,6 +1249,8 @@ Use esses dados para evitar repetir perguntas.
 
   return `
 Você é o Assistente Virtual do Sr. Eduardo Ngongoyove Gabriel.
+
+${languageInstruction}
 
 ${identity}
 
@@ -1247,13 +1284,11 @@ REGRAS CRÍTICAS:
 20. Se o cliente disser apenas uma resposta curta, use o
     contexto anterior para interpretá-la.
 
-IMPORTANTE SOBRE O NOME:
+IMPORTANTE SOBRE IDENTIFICAÇÃO:
 
-Se CLIENTE AINDA NÃO IDENTIFICADO:
-a única coisa que deve fazer é pedir o nome.
-
-Se CLIENTE IDENTIFICADO:
-continue o atendimento normalmente e use o tratamento correto.
+O cliente precisa fornecer nome completo e número de WhatsApp.
+Nunca peça novamente um dado que já foi fornecido.
+Depois de obter os dois dados, continue o atendimento normalmente e use o tratamento correto.
 
 A conversa deve parecer um atendimento humano real.
 `;
@@ -1449,6 +1484,15 @@ async function handleChat(request, env) {
   // IDENTIFICAR CLIENTE
   // ----------------------------------------------------------
 
+  const language =
+    detectLanguage(
+      message,
+      history,
+      context
+    );
+
+  context.idioma = language;
+
   const clientName =
     findKnownClientName(
       context,
@@ -1475,34 +1519,19 @@ async function handleChat(request, env) {
   // ----------------------------------------------------------
 
   if (!clientName) {
-    const alreadyAskedName =
-      history.some(item =>
-        item.role === "assistant" &&
-        /diga-me o seu nome|qual é o seu nome|qual e o seu nome|seu nome/i.test(
-          item.content
-        )
-      );
-
-    if (!alreadyAskedName) {
-      return json({
-        ok: true,
-        reply:
-          "Antes de continuarmos, por favor, diga-me o seu nome.",
-        clientName: null,
-        clientTitle: null,
-        identified: false
-      });
-    }
-
-    // Se já pediu o nome e a pessoa ainda não informou
-    // explicitamente, continuar pedindo sem entrar no serviço.
     return json({
       ok: true,
       reply:
-        "Para continuarmos, por favor, diga-me o seu nome.",
+        language === "en"
+          ? "Hello! I am Azny Gabriel, virtual assistant to Mr. Eduardo Ngongoyove Gabriel. To continue, please send your full name and your WhatsApp number."
+          : "Olá! Sou a Azny Gabriel, assistente virtual do Sr. Eduardo Ngongoyove Gabriel. Para continuarmos, por favor, envie o seu nome completo e o seu número de WhatsApp.",
       clientName: null,
+      clientPhone: clientPhone || null,
       clientTitle: null,
-      identified: false
+      language,
+      identified: false,
+      needsFullName: true,
+      needsPhone: !clientPhone
     });
   }
 
@@ -1512,13 +1541,18 @@ async function handleChat(request, env) {
   if (clientName.split(/\s+/).filter(Boolean).length < 2) {
     return json({
       ok: true,
-      reply: "Obrigado. Para registarmos corretamente o seu atendimento, por favor, envie o seu nome completo (nome e apelido).",
+      reply:
+        language === "en"
+          ? "Thank you. Please send your full name (first and last name) so I can register your assistance correctly."
+          : "Obrigado. Para registarmos corretamente o seu atendimento, por favor, envie o seu nome completo (nome e apelido).",
       clientName,
-      clientPhone: null,
+      clientPhone: clientPhone || null,
       clientTitle,
+      language,
       formalName: null,
       identified: false,
-      needsFullName: true
+      needsFullName: true,
+      needsPhone: !clientPhone
     });
   }
 
@@ -1526,12 +1560,17 @@ async function handleChat(request, env) {
   // NÚMERO DE WHATSAPP OBRIGATÓRIO
   // ----------------------------------------------------------
   if (!clientPhone) {
+    const formal = (clientTitle === "Sra." ? "Sra. " : "Sr. ") + clientName;
     return json({
       ok: true,
-      reply: "Obrigado, " + (clientTitle === "Sra." ? "Sra. " : "Sr. ") + clientName + ". Para que o Sr. Eduardo possa retomar o atendimento consigo pelo WhatsApp quando estiver disponível, por favor, envie o seu número de WhatsApp.",
+      reply:
+        language === "en"
+          ? `Thank you, ${formal}. So that Mr. Eduardo can resume your assistance on WhatsApp when he is available, please send your WhatsApp number.`
+          : `Obrigado, ${formal}. Para que o Sr. Eduardo possa retomar o atendimento consigo pelo WhatsApp quando estiver disponível, por favor, envie o seu número de WhatsApp.`,
       clientName,
       clientPhone: null,
       clientTitle,
+      language,
       formalName: null,
       identified: true,
       needsPhone: true
@@ -1556,7 +1595,8 @@ async function handleChat(request, env) {
     buildSystemPrompt({
       clientName,
       clientTitle: effectiveTitle,
-      context
+      context,
+      language
     });
 
   // ----------------------------------------------------------
@@ -1641,6 +1681,7 @@ async function handleChat(request, env) {
     clientPhone,
     clientTitle: effectiveTitle,
     formalName,
+    language,
     identified: true
   });
 }
@@ -1724,6 +1765,7 @@ async function handleSaveConversation(request, env) {
     phone: String(
       detectedPhone || suppliedPhone
     ).slice(0,40),
+    language: String(c.idioma || c.language || "").slice(0,10),
     email: String(c.email || "").slice(0,160),
     service: String(c.servico || "").slice(0,200),
     request: String(c.pedido || "").slice(0,1000),
