@@ -16,9 +16,11 @@ const MODEL = "openai/gpt-oss-20b";
 
 const VAPID_SUBJECT =
   "https://chat-eduardo-gabriel.eduardongabriel354.workers.dev";
+const VAPID_PUBLIC_KEY_FALLBACK =
+  "BN-rIyUc3G_Y2bFJ0MprqeLD-cbSBS5_g4atOqpuplkKvrpuJ265p0_La3yHRXBlkDB7yKvIfUa5zVUNFa_Imqk";
 
 function pushConfig(env) {
-  const publicKey = String(env.VAPID_PUBLIC_KEY || "").trim();
+  const publicKey = String(env.VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY_FALLBACK).trim();
   const privateKey = String(env.VAPID_PRIVATE_KEY || "").trim();
 
   if (!publicKey || !privateKey) return null;
