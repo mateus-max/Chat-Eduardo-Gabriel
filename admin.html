@@ -40,7 +40,7 @@ body.conversation-screen-open #layout .detail .info{display:flex!important;visib
 .wa-icon-btn:hover{filter:brightness(.95)}
 .wa-icon-btn svg{width:24px;height:24px;fill:currentColor}
 .dots-btn{width:42px;height:42px;padding:0!important;border-radius:50%!important;font-size:23px!important;line-height:1}
-.conversation-open .info{justify-content:flex-start}
+.service-form-admin{margin-top:8px;padding:10px 12px;border:1px solid #dbe4ed;border-radius:12px;background:#f8fafc;display:flex;align-items:center;gap:9px;flex-wrap:wrap}.service-form-admin strong{color:#061a35}.service-form-admin .form-preview{font-size:12px;color:#68788d;max-width:520px}\n.conversation-open .info{justify-content:flex-start}
 .conversation-open .info .export-action{display:none!important}
 .conversation-open .info .delete-action{display:none!important}
 @media(max-width:800px){
@@ -161,7 +161,8 @@ function renderDetail(){
   $("info").classList.remove("hidden");
   $("info").innerHTML=
     '<div class="info-group"><span class="info-label">Serviço:</span><span class="info-value">'+esc(selected.service||"Atendimento geral")+'</span></div>'+
-    '<div class="info-group"><span class="info-label">WhatsApp:</span><input id="phone" value="'+esc(selected.phone||"")+'" placeholder="Número do cliente"><button class="btn" onclick="savePhone()">Guardar</button></div>';
+    '<div class="info-group"><span class="info-label">WhatsApp:</span><input id="phone" value="'+esc(selected.phone||"")+'" placeholder="Número do cliente"><button class="btn" onclick="savePhone()">Guardar</button></div>'+
+    (selected.serviceForm ? '<div class="service-form-admin"><strong>📅 Formulário de agendamento registado</strong><span class="form-preview">'+esc(selected.serviceForm.service||selected.service||"Serviço")+'</span><button class="btn primary" onclick="downloadServiceFormAdmin()">⬇️ Baixar formulário</button></div>' : '');
 
   msgBox.dataset.sessionId=String(selected.sessionId);
   if(preserveScroll){
@@ -178,6 +179,14 @@ function savePhone(){var p=$("phone").value.trim();selected.phone=p;fetch(API_BA
 async function deleteConversation(){if(!selected)return;var name=selected.clientName||"esta conversa";if(!confirm("Eliminar definitivamente a conversa de "+name+"?\n\nEsta ação não pode ser desfeita."))return;var id=selected.sessionId;var r=await api("/api/admin/conversations/"+encodeURIComponent(id),{method:"DELETE"});var d=await r.json().catch(function(){return{}});if(!r.ok){alert(d.error||"Não foi possível eliminar a conversa.");return}selected=null;closeConversation();await load()}
 function whatsapp(){var p=String(selected.phone||"").replace(/\D/g,"");if(p.indexOf("00")===0)p=p.slice(2);if(p.charAt(0)==="0")p="244"+p.slice(1);if(!p){alert("Informe primeiro o número de WhatsApp do cliente.");return}var clean=String(selected.clientName||"").replace(/^(sr\.?|sra\.?|senhor|senhora)\s+/i,"");var title=/^(sra|senhora)\b/i.test(selected.clientName||"")?"Sra. ":"Sr. ";var msg="Olá, "+title+clean+". Aqui é o Eduardo Gabriel. Tomei conhecimento da sua conversa com a minha assistente Azny Gabriel e vou dar continuidade pessoalmente ao seu atendimento.";window.open("https://wa.me/"+p+"?text="+encodeURIComponent(msg),"_blank")}
 function download(t,n,type){var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:type}));a.download=n;a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},1000)}
+function downloadServiceFormAdmin(){
+  if(!selected||!selected.serviceForm)return;
+  var f=selected.serviceForm;
+  var lines=["FORMULÁRIO DE AGENDAMENTO — EDUARDO GABRIEL","Serviço: "+(f.service||selected.service||""),"Nome completo: "+(f.clientName||selected.clientName||""),"WhatsApp: "+(f.clientPhone||selected.phone||""),"Idioma: "+(f.language||selected.language||"pt"),""];
+  Object.keys(f.fields||{}).forEach(function(k){lines.push(k+": "+String(f.fields[k]||""))});
+  lines.push("","Registado em: "+(f.updatedAt||f.createdAt||selected.updatedAt||""));
+  download(lines.join("\n"),"formulario-"+safe(f.service||selected.service||"agendamento")+".txt","text/plain;charset=utf-8");
+}
 function exportTxt(){var h=(selected.history||[]).map(function(m){return (m.type==="user"?"CLIENTE":"AZNY")+": "+m.text}).join("\n");download("ATENDIMENTO — "+(selected.clientName||"Cliente")+"\nTelefone: "+(selected.phone||"—")+"\n\n"+h,"atendimento-"+safe(selected.clientName)+".txt","text/plain;charset=utf-8")}
 function exportJson(){download(JSON.stringify(selected,null,2),"atendimento-"+safe(selected.clientName)+".json","application/json;charset=utf-8")}
 $("enter").onclick=login;$("key").onkeydown=function(e){if(e.key==="Enter")login()};$("refresh").onclick=load;$("logout").onclick=function(){sessionStorage.removeItem("admin_token");location.reload()};$("search").oninput=renderList;
