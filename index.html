@@ -935,7 +935,8 @@ async function saveConversationToAdmin(){
         context:ctx,
         clientName:ctx.nome || "",
         clientPhone:ctx.telefone || "",
-        history:history.slice(-100)
+        history:history.slice(-100),
+        service_form: currentServiceForm || null
       })
     });
   }catch{}
@@ -943,6 +944,165 @@ async function saveConversationToAdmin(){
 function queueConversationSave(){
   clearTimeout(conversationSaveTimer);
   conversationSaveTimer=setTimeout(saveConversationToAdmin,1200);
+}
+
+/* =========================================================
+   FORMULÁRIOS DE AGENDAMENTO POR SERVIÇO
+   ========================================================= */
+const SERVICE_FORMS = {
+  "Criação de websites":[
+    ["objetivo","Objetivo do website","text",true],
+    ["tipo","Tipo de website","text",true],
+    ["funcionalidades","Funcionalidades ou páginas pretendidas","textarea",true],
+    ["dominio","Domínio/website atual","text",false],
+    ["prazo","Prazo pretendido","text",false],
+    ["observacoes","Observações adicionais","textarea",false]
+  ],
+  "Sistemas de gestão empresarial":[
+    ["empresa","Nome da empresa","text",true],
+    ["processos","Processos que pretende gerir","textarea",true],
+    ["modulos","Módulos/funcionalidades","textarea",true],
+    ["utilizadores","Número de utilizadores","text",false],
+    ["integracoes","Integrações necessárias","text",false],
+    ["prazo","Prazo pretendido","text",false],
+    ["observacoes","Observações adicionais","textarea",false]
+  ],
+  "Aplicativos":[
+    ["objetivo","Objetivo do aplicativo","textarea",true],
+    ["plataforma","Plataforma","text",true],
+    ["funcionalidades","Principais funcionalidades","textarea",true],
+    ["utilizadores","Público/utilizadores","text",false],
+    ["integracoes","Integrações necessárias","text",false],
+    ["prazo","Prazo pretendido","text",false],
+    ["observacoes","Observações adicionais","textarea",false]
+  ],
+  "Emails corporativos":[
+    ["empresa","Nome da empresa","text",true],
+    ["dominio","Domínio da empresa","text",true],
+    ["contas","Número de emails","text",true],
+    ["nomes","Contas/endereço dos emails","textarea",false],
+    ["prazo","Prazo pretendido","text",false],
+    ["observacoes","Observações adicionais","textarea",false]
+  ],
+  "Acompanhamento Hospitalar na Namíbia":[
+    ["paciente","Nome completo do paciente","text",true],
+    ["cidade","Cidade na Namíbia","text",true],
+    ["hospital","Hospital/clínica","text",true],
+    ["data","Data da consulta","date",true],
+    ["hora","Hora prevista","text",false],
+    ["necessidade","Tipo de acompanhamento","textarea",true],
+    ["observacoes","Observações adicionais","textarea",false]
+  ],
+  "Compras na Namíbia":[
+    ["cidade","Cidade/local de compra","text",true],
+    ["produtos","Produtos e quantidades","textarea",true],
+    ["orcamento","Orçamento disponível","text",false],
+    ["data","Data pretendida","date",false],
+    ["entrega","Local/forma de entrega","text",false],
+    ["observacoes","Observações adicionais","textarea",false]
+  ],
+  "Recebimento e envio de encomendas":[
+    ["remetente","Nome do remetente","text",true],
+    ["destinatario","Nome do destinatário","text",true],
+    ["origem","Local de origem","text",true],
+    ["destino","Local de destino","text",true],
+    ["conteudo","Descrição da encomenda","textarea",true],
+    ["peso","Peso/quantidade aproximada","text",false],
+    ["data","Data pretendida","date",false],
+    ["observacoes","Observações adicionais","textarea",false]
+  ]
+};
+
+function inferServiceForForm(text){
+  const sample=[ctx.servico||""].concat(history.slice(-12).map(function(x){return x.text||""})).concat([text||""]).join(" ").toLowerCase();
+  const aliases={
+    "Criação de websites":["website","web site","site institucional","criação de site","criacao de site"],
+    "Sistemas de gestão empresarial":["sistema de gestão","sistema de gestao","gestão empresarial","gestao empresarial","erp"],
+    "Aplicativos":["aplicativo","aplicativos"," app ","android","ios","aplicação móvel","aplicacao movel"],
+    "Emails corporativos":["email corporativo","emails corporativos","e-mail corporativo"],
+    "Acompanhamento Hospitalar na Namíbia":["acompanhamento hospitalar","hospital na namíbia","hospital na namibia"],
+    "Compras na Namíbia":["compras na namíbia","compras na namibia","comprar na namíbia","comprar na namibia"],
+    "Recebimento e envio de encomendas":["encomenda","encomendas","enviar pacote","receber pacote"]
+  };
+  for(const name in aliases){
+    if(aliases[name].some(function(w){return sample.indexOf(w)>=0})) return name;
+  }
+  return "";
+}
+
+function isScheduleConfirmation(text){
+  const value=String(text||"").trim().toLowerCase();
+  return /^(sim|yes|sure|ok|okay|claro|quero|pode|sim quero|yes please)$/i.test(value)
+    || /(quero agendar|quero marcar|sim, quero|yes, please|i want to schedule|i would like to schedule|book it|schedule it)/i.test(value);
+}
+
+function formFieldHtml(field){
+  const key=field[0],label=field[1],type=field[2],required=field[3];
+  const cls=type==="textarea"?"service-form-field full":"service-form-field";
+  if(type==="textarea") return '<div class="'+cls+'"><label>'+esc(label)+(required?" *":"")+'</label><textarea id="sf_'+esc(key)+'" '+(required?"required":"")+'></textarea></div>';
+  return '<div class="'+cls+'"><label>'+esc(label)+(required?" *":"")+'</label><input id="sf_'+esc(key)+'" type="'+esc(type)+'" '+(required?"required":"")+'></div>';
+}
+
+function serviceFormRequiredOk(name,card){
+  return SERVICE_FORMS[name].filter(function(f){return f[3]}).every(function(f){
+    const el=card.querySelector("#sf_"+f[0]);
+    return el && String(el.value||"").trim();
+  });
+}
+
+function downloadServiceForm(data){
+  const lines=["FORMULÁRIO DE AGENDAMENTO — EDUARDO GABRIEL","Serviço: "+data.service,"Nome completo: "+data.clientName,"WhatsApp: "+data.clientPhone,""];
+  Object.keys(data.fields||{}).forEach(function(k){lines.push(k+": "+String(data.fields[k]||""))});
+  lines.push("","Registado em: "+new Date(data.updatedAt||Date.now()).toLocaleString("pt-AO"));
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([lines.join("\n")],{type:"text/plain;charset=utf-8"}));
+  a.download="formulario-"+String(data.service||"agendamento").replace(/[^a-z0-9]+/gi,"-").toLowerCase()+".txt";
+  a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href)},1000);
+}
+
+function openServiceForm(service){
+  if(scheduleFormShown) return;
+  const name=SERVICE_FORMS[service]?service:inferServiceForForm(service);
+  if(!name || !SERVICE_FORMS[name]) return;
+  scheduleFormShown=true;
+  ctx.servico=name;
+  const chat=document.getElementById("chat");
+  const card=document.createElement("section");
+  card.id="serviceFormCard";
+  card.className="service-form-card";
+  card.innerHTML='<h3>📅 Formulário de agendamento</h3><p>Preencha os dados para <strong>'+esc(name)+'</strong>. O formulário será registado para o Sr. Eduardo e poderá baixar uma cópia.</p><div class="service-form-grid"><div class="service-form-field"><label>Nome completo *</label><input id="sf_clientName" value="'+esc(ctx.nome||"")+'"></div><div class="service-form-field"><label>WhatsApp *</label><input id="sf_clientPhone" value="'+esc(ctx.telefone||"")+'"></div>'+SERVICE_FORMS[name].map(formFieldHtml).join("")+'</div><div class="service-form-actions"><button type="button" class="service-form-submit" id="sf_submit">Registar pedido</button><button type="button" class="service-form-download" id="sf_download" disabled>⬇️ Baixar cópia</button></div><div class="service-form-status" id="sf_status"></div>';
+  chat.appendChild(card);
+  card.scrollIntoView({behavior:"smooth",block:"end"});
+  let saved=null;
+  function collect(){
+    const fields={};
+    SERVICE_FORMS[name].forEach(function(f){fields[f[0]]=String(card.querySelector("#sf_"+f[0])?.value||"").trim()});
+    return {service:name,clientName:String(card.querySelector("#sf_clientName")?.value||"").trim(),clientPhone:String(card.querySelector("#sf_clientPhone")?.value||"").trim(),language:ctx.idioma||"pt",fields:fields,createdAt:saved?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+  }
+  card.querySelector("#sf_submit").onclick=async function(){
+    if(!card.querySelector("#sf_clientName").value.trim() || !card.querySelector("#sf_clientPhone").value.trim() || !serviceFormRequiredOk(name,card)){
+      card.querySelector("#sf_status").textContent="Preencha todos os campos obrigatórios.";
+      return;
+    }
+    const data=collect();
+    ctx.nome=data.clientName;
+    ctx.telefone=data.clientPhone;
+    currentServiceForm=data;
+    card.querySelector("#sf_status").textContent="A registar o formulário...";
+    try{
+      const r=await fetch(API_BASE+"/api/conversations/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_id:sessionId,context:ctx,clientName:ctx.nome,clientPhone:ctx.telefone,history:history.slice(-100),service_form:data})});
+      const d=await r.json().catch(function(){return{}});
+      if(!r.ok) throw new Error(d.error||"Não foi possível guardar o formulário.");
+      saved=data;
+      card.querySelector("#sf_download").disabled=false;
+      card.querySelector("#sf_download").onclick=function(){downloadServiceForm(saved)};
+      card.querySelector("#sf_status").textContent="Formulário registado. O Sr. Eduardo poderá baixá-lo na área administrativa.";
+      queueConversationSave();
+    }catch(err){
+      card.querySelector("#sf_status").textContent=err.message||"Não foi possível registar o formulário.";
+    }
+  };
 }
 
 /* =========================================================
