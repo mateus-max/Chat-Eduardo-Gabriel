@@ -20,6 +20,20 @@ self.addEventListener("activate", event => {
 });
 
 self.addEventListener("fetch", event => {
+  if(request.method==="GET"&&(url.pathname==="/admin"||url.pathname==="/admin.html")){
+    event.respondWith(
+      fetch(request,{cache:"no-store"}).then(async response=>{
+        var html=await response.text();
+        html=html.replace("</body>","<script src=\"/admin-push.js?v=20261008-push4\"></script></body>");
+        var headers=new Headers(response.headers);
+        headers.delete("content-length");
+        headers.set("Cache-Control","no-store");
+        return new Response(html,{status:response.status,headers:headers});
+      })
+    );
+    return;
+  }
+
   const request = event.request;
   if (request.method !== "GET") return;
 
