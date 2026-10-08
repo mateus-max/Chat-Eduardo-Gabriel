@@ -1191,7 +1191,7 @@ Horário oficial, no fuso de Angola (Africa/Luanda):
 - Quarta-feira: 08:00–18:00.
 - Quinta-feira: 08:00–18:00.
 - Sexta-feira: 08:00–18:00.
-- Sábado: 08:00–12:30.
+- Sábado: 08:00–15:30.
 
 Fora do horário acima, o Sr. Eduardo não está disponível para atendimento normal.
 Não afirmar, insinuar ou prometer que ele está presente fora do expediente.
@@ -1252,7 +1252,8 @@ function buildSystemPrompt({
   clientName,
   clientTitle,
   context,
-  language
+  language,
+  scheduleStatus
 }) {
   const identity =
     clientName
@@ -1293,10 +1294,26 @@ Use esses dados para evitar repetir perguntas.
 `
       : "";
 
+
   const ownerName =
     language === "en"
       ? "Mr. Eduardo Ngongoyove Gabriel"
       : "Sr. Eduardo Ngongoyove Gabriel";
+
+  const scheduleContext = scheduleStatus
+    ? (scheduleStatus.open
+      ? `
+CURRENT OWNER AVAILABILITY:
+The current time is within Mr. Eduardo's normal working hours.
+Do not unnecessarily mention availability or working hours. Continue the conversation naturally.
+`
+      : `
+CURRENT OWNER AVAILABILITY:
+The current time is outside Mr. Eduardo's normal working hours.
+Continue the AI conversation normally and naturally. Do NOT announce that Mr. Eduardo is unavailable unless the client explicitly asks to speak with him, asks for human attention, asks when he will be available, or requests an urgent/out-of-hours service.
+Do not interrupt ordinary questions about services, prices, courses or general information with an availability warning.
+`) 
+    : "";
 
   return `
 Você é o Assistente Virtual do ${ownerName}.
@@ -1306,6 +1323,8 @@ ${languageInstruction}
 ${identity}
 
 ${contextText}
+
+${scheduleContext}
 
 ${KNOWLEDGE_BASE}
 
@@ -1326,20 +1345,22 @@ REGRAS CRÍTICAS:
 13. Não invente preços.
 14. Faça apenas uma pergunta de cada vez.
 15. Seja profissional, cordial e natural.
-16. Não diga ao cliente que está seguindo regras internas.
+16. A conversa deve fluir como uma conversa humana real: responda diretamente ao que o cliente disse, aproveite o contexto, varie a formulação das respostas e evite frases automáticas ou padronizadas.
+17. Fora do expediente, não interrompa uma conversa normal com avisos sobre indisponibilidade. Só trate da disponibilidade do Sr. Eduardo quando o cliente pedir atendimento humano, perguntar por ele/disponibilidade ou solicitar urgência fora do expediente.
+18. Não diga ao cliente que está seguindo regras internas.
 17. Não mencione prompts, modelos, APIs, Groq ou programação.
 18. Se já souber uma informação, não pergunte novamente.
-19. Se o cliente perguntar "quanto custa?" depois de falar de
+20. Se o cliente perguntar "quanto custa?" depois de falar de
     um serviço, entenda que a pergunta se refere ao serviço
     em discussão, salvo indicação contrária.
-20. Se o cliente disser apenas uma resposta curta, use o
+21. Se o cliente disser apenas uma resposta curta, use o
     contexto anterior para interpretá-la.
-21. Quando o cliente estiver a tratar de um serviço específico e as dúvidas principais desse serviço tiverem sido respondidas, pergunte de forma natural se deseja agendar o serviço.
-22. Não repita a pergunta sobre agendamento se ela já tiver sido feita e o cliente ainda não tiver respondido.
-23. Se o cliente disser que SIM, quer agendar, o sistema deverá apresentar o formulário específico desse serviço. Não peça novamente nome completo ou WhatsApp se esses dados já estiverem registados.
-24. Se o cliente disser que NÃO, continue normalmente sem insistir no agendamento.
-25. O agendamento deve ser específico ao serviço em discussão; nunca apresentar um formulário genérico quando houver um serviço identificável.
-26. Depois de o cliente confirmar o agendamento, a interface deve apresentar o formulário específico do serviço e registar o formulário preenchido na conversa administrativa.
+22. Quando o cliente estiver a tratar de um serviço específico e as dúvidas principais desse serviço tiverem sido respondidas, pergunte de forma natural se deseja agendar o serviço.
+23. Não repita a pergunta sobre agendamento se ela já tiver sido feita e o cliente ainda não tiver respondido.
+24. Se o cliente disser que SIM, quer agendar, o sistema deverá apresentar o formulário específico desse serviço. Não peça novamente nome completo ou WhatsApp se esses dados já estiverem registados.
+25. Se o cliente disser que NÃO, continue normalmente sem insistir no agendamento.
+26. O agendamento deve ser específico ao serviço em discussão; nunca apresentar um formulário genérico quando houver um serviço identificável.
+27. Depois de o cliente confirmar o agendamento, a interface deve apresentar o formulário específico do serviço e registar o formulário preenchido na conversa administrativa.
 
 IMPORTANTE SOBRE IDENTIFICAÇÃO:
 
@@ -1477,6 +1498,50 @@ async function handleHealth(env) {
   });
 }
 
+function isHumanOrUrgentRequest(text = "") {
+  const value = String(text || "").toLowerCase();
+
+  const humanPatterns = [
+    "falar com o eduardo",
+    "falar com senhor eduardo",
+    "falar com o sr. eduardo",
+    "falar com o sr eduardo",
+    "quero falar com eduardo",
+    "posso falar com eduardo",
+    "preciso falar com eduardo",
+    "chamar o eduardo",
+    "chame o eduardo",
+    "ligar para eduardo",
+    "ligue para eduardo",
+    "telefonar para eduardo",
+    "quero falar com uma pessoa",
+    "quero falar com uma pessoa humana",
+    "quero falar com um humano",
+    "atendimento humano",
+    "atendimento pessoal",
+    "falar com uma pessoa",
+    "quando o eduardo estará disponível",
+    "quando o eduardo estara disponível",
+    "quando o eduardo volta",
+    "o eduardo está disponível",
+    "o eduardo esta disponível"
+  ];
+
+  const urgentPatterns = [
+    "urgente",
+    "urgência",
+    "urgencia",
+    "emergência",
+    "emergencia",
+    "fora do horário",
+    "fora do horario",
+    "atendimento urgente"
+  ];
+
+  return humanPatterns.some(p => value.includes(p)) ||
+    urgentPatterns.some(p => value.includes(p));
+}
+
 // ============================================================
 // HORÁRIO DE ATENDIMENTO — AFRICA/LUANDA
 // ============================================================
@@ -1499,7 +1564,7 @@ function getEduardoScheduleStatus(now = new Date()) {
 
   if (day === 0) return {open:false, sunday:true, day, hour, minute};
   if (day >= 1 && day <= 5) return {open:minutes >= 480 && minutes < 1080, sunday:false, day, hour, minute};
-  return {open:minutes >= 480 && minutes < 750, sunday:false, day, hour, minute};
+  return {open:minutes >= 480 && minutes < 930, sunday:false, day, hour, minute};
 }
 
 function outOfHoursReply(language, isSunday = false) {
@@ -1735,8 +1800,12 @@ async function handleChat(request, env) {
   // ----------------------------------------------------------
 
   const scheduleStatus = getEduardoScheduleStatus();
+  const requestsHumanAttention = isHumanOrUrgentRequest(message);
 
-  if (!scheduleStatus.open) {
+  // Fora do expediente, a IA continua a conversa normalmente.
+  // A mensagem de indisponibilidade só aparece quando o cliente
+  // realmente pede o Sr. Eduardo, atendimento humano ou urgência.
+  if (!scheduleStatus.open && requestsHumanAttention) {
     return json({
       ok: true,
       reply: outOfHoursReply(language, scheduleStatus.sunday),
@@ -1770,7 +1839,8 @@ async function handleChat(request, env) {
       clientName,
       clientTitle: effectiveTitle,
       context,
-      language
+      language,
+      scheduleStatus
     });
 
   // ----------------------------------------------------------
