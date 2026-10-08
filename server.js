@@ -629,13 +629,16 @@ function looksLikeServiceRequest(text) {
 // DETECTAR TRATAMENTO
 // ============================================================
 
-function detectTitle(text, history = []) {
+function detectTitle(text, history = [], language = "pt") {
   const allText = [
     ...history.map(x => x.content || ""),
     text || ""
   ]
     .join(" ")
     .toLowerCase();
+
+  const femaleTitle = language === "en" ? "Ms." : "Sra.";
+  const maleTitle = language === "en" ? "Mr." : "Sr.";
 
   // Formas explícitas femininas
   if (
@@ -647,7 +650,7 @@ function detectTitle(text, history = []) {
     /\bms\.?\b/.test(allText) ||
     /\bmadam\b/.test(allText)
   ) {
-    return "Sra.";
+    return femaleTitle;
   }
 
   // Formas explícitas masculinas
@@ -659,7 +662,7 @@ function detectTitle(text, history = []) {
     /\bmr\.?\b/.test(allText) ||
     /\bsir\b/.test(allText)
   ) {
-    return "Sr.";
+    return maleTitle;
   }
 
   // Padrão definido pelo proprietário:
@@ -1214,30 +1217,30 @@ function buildSystemPrompt({
   const identity =
     clientName
       ? `
-CLIENTE IDENTIFICADO
+CLIENT IDENTIFIED
 
-Nome: ${clientName}
-Tratamento obrigatório: ${clientTitle} ${clientName}
+Full name: ${clientName}
+Mandatory form of address: ${clientTitle} ${clientName}
 
-IMPORTANTE:
-- Dirija-se ao cliente como "${clientTitle} ${clientName}".
-- Nunca use apenas "${clientName}".
-- Não altere o nome.
-- Não invente outro nome.
+IMPORTANT:
+- Address the client as "${clientTitle} ${clientName}".
+- Never use only "${clientName}".
+- Do not change the name.
+- Do not invent another name.
 `
       : `
-CLIENTE AINDA NÃO IDENTIFICADO.
+CLIENT NOT YET IDENTIFIED.
 
-REGRA ABSOLUTA:
-O cliente precisa fornecer nome completo e número de WhatsApp.
-Se um desses dados já tiver sido fornecido, peça apenas o dado que falta.
-Nunca repita uma pergunta já respondida.
+ABSOLUTE RULE:
+The client must provide their full name and WhatsApp number.
+If one of these details has already been provided, ask only for the missing detail.
+Never repeat a question that has already been answered.
 `;
 
   const languageInstruction =
     language === "en"
-      ? "IDIOMA OBRIGATÓRIO: INGLÊS. Responda exclusivamente em Inglês durante esta conversa. A apresentação e todos os pedidos de identificação também devem ser em Inglês. Não mude para Português sem pedido explícito."
-      : "IDIOMA OBRIGATÓRIO: PORTUGUÊS. Responda exclusivamente em Português durante esta conversa. A apresentação e todos os pedidos de identificação também devem ser em Português. Não mude para Inglês sem pedido explícito.";
+      ? "MANDATORY LANGUAGE: ENGLISH. Respond exclusively in English throughout this conversation. The introduction, identification requests, questions, service explanations and all subsequent replies must remain in English unless the client explicitly asks to change language. For female clients use Ms. [Full Name]; for male clients use Mr. [Full Name]."
+      : "IDIOMA OBRIGATÓRIO: PORTUGUÊS. Responda exclusivamente em Português durante esta conversa. A apresentação, pedidos de identificação, perguntas, explicações de serviços e todas as respostas seguintes devem permanecer em Português, salvo pedido explícito de mudança de idioma. Para clientes do sexo feminino use Sra. [Nome completo]; para clientes do sexo masculino use Sr. [Nome completo].";
 
   const contextText =
     context && Object.keys(context).length
@@ -1250,8 +1253,13 @@ Use esses dados para evitar repetir perguntas.
 `
       : "";
 
+  const ownerName =
+    language === "en"
+      ? "Mr. Eduardo Ngongoyove Gabriel"
+      : "Sr. Eduardo Ngongoyove Gabriel";
+
   return `
-Você é o Assistente Virtual do Sr. Eduardo Ngongoyove Gabriel.
+Você é o Assistente Virtual do ${ownerName}.
 
 ${languageInstruction}
 
@@ -1263,12 +1271,12 @@ ${KNOWLEDGE_BASE}
 
 REGRAS CRÍTICAS:
 
-1. Você NÃO é o Sr. Eduardo.
-2. Você é o Assistente Virtual do Sr. Eduardo Ngongoyove Gabriel.
+1. Você NÃO é o proprietário.
+2. Você é o Assistente Virtual do proprietário.
 3. Nunca diga "Assistente Virtual do Eduardo".
 4. Nunca trate o proprietário simplesmente por "Eduardo".
-5. Quando falar do proprietário, use "Sr. Eduardo Ngongoyove Gabriel".
-6. Quando falar com o cliente, use sempre "Sr." ou "Sra." + nome.
+5. Quando falar do proprietário, use "Sr. Eduardo Ngongoyove Gabriel" em Português e "Mr. Eduardo Ngongoyove Gabriel" em Inglês.
+6. Quando falar com o cliente, use sempre "Sr."/"Sra." em Português ou "Mr."/"Ms." em Inglês + nome completo.
 7. Nunca chame o cliente somente pelo nome.
 8. Não reinicie a conversa.
 9. Não repita a apresentação depois que ela já tiver sido feita.
@@ -1506,7 +1514,8 @@ async function handleChat(request, env) {
   const clientTitle =
     detectTitle(
       message,
-      history
+      history,
+      language
     );
 
   const clientPhone =
