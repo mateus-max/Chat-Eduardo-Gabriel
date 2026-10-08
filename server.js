@@ -907,6 +907,26 @@ E assim sucessivamente.
 SERVIÇOS
 ------------------------------------------------------------
 
+ORDEM PRIORITÁRIA DOS SERVIÇOS APRESENTADOS AO CLIENTE
+1. Criação de websites
+2. Sistemas de gestão empresarial
+3. Aplicativos
+4. Emails corporativos
+5. Acompanhamento Hospitalar na Namíbia
+6. Compras na Namíbia
+7. Recebimento e envio de encomendas
+8. Tradução e interpretação
+9. Tradução juramentada
+10. Marketing digital
+11. Design gráfico
+12. Consultoria educacional
+13. Cursos
+14. Armazenamento Musical DNAC
+15. Composição e arranjos
+16. Outros serviços disponíveis na base de conhecimento
+
+Quando apresentar ou sugerir serviços, respeitar esta ordem, sem apagar os demais serviços existentes.
+
 1. CRIAÇÃO DE WEBSITES
 
 Inclui:
@@ -1319,6 +1339,7 @@ REGRAS CRÍTICAS:
 23. Se o cliente disser que SIM, quer agendar, o sistema deverá apresentar o formulário específico desse serviço. Não peça novamente nome completo ou WhatsApp se esses dados já estiverem registados.
 24. Se o cliente disser que NÃO, continue normalmente sem insistir no agendamento.
 25. O agendamento deve ser específico ao serviço em discussão; nunca apresentar um formulário genérico quando houver um serviço identificável.
+26. Depois de o cliente confirmar o agendamento, a interface deve apresentar o formulário específico do serviço e registar o formulário preenchido na conversa administrativa.
 
 IMPORTANTE SOBRE IDENTIFICAÇÃO:
 
