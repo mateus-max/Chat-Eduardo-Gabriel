@@ -70,3 +70,17 @@
     }catch(e){}
   };
 })();
+
+function bindAdminAlertButton(){
+  var b=document.getElementById("alerts");
+  if(b&&!b.dataset.bound){
+    b.dataset.bound="1";
+    b.addEventListener("click",window.enableAlerts);
+  }
+  if(window.syncAlerts)window.syncAlerts();
+}
+if(document.readyState==="loading"){
+  document.addEventListener("DOMContentLoaded",bindAdminAlertButton);
+}else{
+  bindAdminAlertButton();
+}
