@@ -1459,10 +1459,9 @@ function showIntro(){
     hourCycle: "h23"
   }).format(new Date()).split(":")[0]);
 
-  const horarioEduardo =
-    horaLuanda >= 19
-      ? "O senhor Eduardo encontra-se indisponível no momento. Assim que estiver disponível novamente, poderá responder com a maior brevidade possível."
-      : "";
+  // A disponibilidade do Sr. Eduardo só é mencionada quando o cliente
+  // pede atendimento humano/urgente. A conversa normal permanece natural.
+  const horarioEduardo = "";
 
   let intro = `${saudacao}
 
