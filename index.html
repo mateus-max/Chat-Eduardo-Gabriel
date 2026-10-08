@@ -818,6 +818,20 @@ function nomeCliente(){
 
 }
 
+function detectarIdiomaInicial(text){
+  const value=String(text||"").toLowerCase();
+  if(!value) return "pt";
+  const pt=["olá","ola","oi","bom dia","boa tarde","boa noite","preciso","gostaria","quero","tenho","sou","me chamo","meu nome","senhor","senhora","preço","preco","quanto","serviço","servico","ajuda","número","numero","por favor","obrigado","obrigada","pode"];
+  const en=["hello","hi","good morning","good afternoon","good evening","i need","i would like","i want","i have","i am","i'm","my name","mr","mrs","ms","sir","madam","price","how much","service","help","number","please","thank you","can you","could you","where","what","when"];
+  let p=0,e=0;
+  pt.forEach(x=>{if(value.includes(x))p++});
+  en.forEach(x=>{if(value.includes(x))e++});
+  if(e>p)return "en";
+  if(p>e)return "pt";
+  if(/\b(the|this|that|with|for|from|about|please|can)\b/i.test(value))return "en";
+  return "pt";
+}
+
 
 function tratamentoCliente(){
 
@@ -1319,6 +1333,7 @@ async function processVoiceMessage(blob){
     add(data.reply || "Desculpe, não consegui preparar a resposta agora.","bot");
     if(data.clientName) ctx.nome=data.clientName;
     if(data.clientPhone) ctx.telefone=data.clientPhone;
+    if(data.language) ctx.idioma=data.language;
 
     history.push({text:transcript,type:"user"});
     history.push({text:data.reply || "",type:"bot"});
@@ -1349,6 +1364,9 @@ async function send(){
   if(!text)
     return;
 
+  if(!ctx.idioma){
+    ctx.idioma=detectarIdiomaInicial(text);
+  }
 
   add(
     text,
@@ -1498,6 +1516,7 @@ async function send(){
 
     if(data.clientName) ctx.nome=data.clientName;
     if(data.clientPhone) ctx.telefone=data.clientPhone;
+    if(data.language) ctx.idioma=data.language;
 
     // Persistir imediatamente o nome completo e o WhatsApp assim que o servidor os confirmar.
     queueConversationSave();
@@ -1617,7 +1636,9 @@ document.getElementById("input")
    INICIAR
    ========================================================= */
 
-showIntro();
+// O chat permanece silencioso ao abrir.
+// A primeira mensagem parte sempre do cliente.
+quick([]);
 
 </script>
 
