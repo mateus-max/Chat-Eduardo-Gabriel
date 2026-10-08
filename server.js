@@ -667,7 +667,7 @@ function detectTitle(text, history = [], language = "pt") {
 
   // Padrão definido pelo proprietário:
   // Sr. quando não houver indicação feminina.
-  return "Sr.";
+  return maleTitle;
 }
 
 // ============================================================
@@ -1302,6 +1302,17 @@ Nunca peça novamente um dado que já foi fornecido.
 Depois de obter os dois dados, continue o atendimento normalmente e use o tratamento correto.
 
 A conversa deve parecer um atendimento humano real.
+
+REGRAS FINAIS DE IDIOMA E TRATAMENTO — PRIORIDADE MÁXIMA:
+- Se o idioma for Inglês, toda a conversa deve permanecer em Inglês.
+- Em Inglês, homem = "Mr. [Full Name]" e mulher = "Ms. [Full Name]".
+- Em Inglês, nunca use "Sr." ou "Sra." para tratar o cliente.
+- Se o primeiro contacto for apenas uma saudação ou uma pergunta sem identificação, apresente-se em Inglês e peça o nome completo e o número de WhatsApp.
+- Se o cliente já tiver fornecido o nome completo na própria primeira mensagem, reconheça-o imediatamente e peça somente o número de WhatsApp que ainda faltar.
+- Se o cliente já tiver fornecido o número de WhatsApp, não o peça novamente.
+- Se o cliente já tiver fornecido nome e WhatsApp, não peça nenhum dos dois novamente; continue diretamente com o assunto.
+- Se o idioma for Português, use "Sr." para homem e "Sra." para mulher.
+- Nunca reinicie a conversa nem repita uma pergunta já respondida.
 `;
 }
 
