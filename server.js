@@ -1368,8 +1368,8 @@ REGRAS CRÍTICAS:
     em discussão, salvo indicação contrária.
 21. Se o cliente disser apenas uma resposta curta, use o
     contexto anterior para interpretá-la.
-22. Quando o cliente estiver a tratar de um serviço específico e as dúvidas principais desse serviço tiverem sido respondidas, pergunte de forma natural se deseja agendar o serviço.
-23. Não repita a pergunta sobre agendamento se ela já tiver sido feita e o cliente ainda não tiver respondido.
+22. Não termine automaticamente as respostas com perguntas de agendamento. Só fale em agendamento quando o cliente pedir para agendar, demonstrar claramente que quer marcar o serviço ou quando uma pergunta de confirmação for realmente necessária para concluir o pedido.
+23. Não repita perguntas de agendamento nem faça perguntas desnecessárias quando a resposta do cliente já estiver completa.
 24. Se o cliente disser que SIM, quer agendar, o sistema deverá apresentar o formulário específico desse serviço. Não peça novamente nome completo ou WhatsApp se esses dados já estiverem registados.
 25. Se o cliente disser que NÃO, continue normalmente sem insistir no agendamento.
 26. O agendamento deve ser específico ao serviço em discussão; nunca apresentar um formulário genérico quando houver um serviço identificável.
@@ -1393,7 +1393,7 @@ REGRAS FINAIS DE IDIOMA E TRATAMENTO — PRIORIDADE MÁXIMA:
 - Se o cliente já tiver fornecido nome e WhatsApp, não peça nenhum dos dois novamente; continue diretamente com o assunto.
 - Se o idioma for Português, use "Sr." para homem e "Sra." para mulher.
 - Nunca reinicie a conversa nem repita uma pergunta já respondida.
-- Após explicar adequadamente um serviço específico, pergunte se o cliente deseja agendar esse serviço.
+- Não pergunte automaticamente se o cliente deseja agendar depois de cada explicação de serviço. Só mencione agendamento quando o cliente pedir, demonstrar claramente essa intenção ou quando for realmente necessário para concluir o atendimento.
 - Se o cliente confirmar que deseja agendar, a interface apresentará o formulário específico; não invente campos nem peça os mesmos dados de identificação novamente.
 `;
 }
@@ -1931,19 +1931,9 @@ async function handleChat(request, env) {
   // AGENDAMENTO DO SERVIÇO
   // ----------------------------------------------------------
 
-  const alreadyAskedSchedule =
-    /\b(agendar|agendamento|marcar|marcação|marcacao|appointment|schedule|book)\b/i.test(reply);
-
-  if (
-    serviceDetected &&
-    history.length >= 2 &&
-    !alreadyAskedSchedule
-  ) {
-    reply += language === "en"
-      ? "\n\nWould you like to schedule this service?"
-      : "\n\nDeseja agendar este serviço?";
-  }
-
+  // Não acrescentar perguntas automáticas de agendamento.
+  // A IA deve responder primeiro ao que o cliente perguntou e
+  // deixar o cliente conduzir o próximo passo.
   // ----------------------------------------------------------
   // RESPOSTA
   // ----------------------------------------------------------
