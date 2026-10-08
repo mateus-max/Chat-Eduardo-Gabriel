@@ -1752,55 +1752,41 @@ async function handleAdminConversation(request, env, sessionId) {
 // ============================================================
 
 async function fetchHandler(request) {
-    // No formato Service Worker do Cloudflare, os bindings
-    // (Secrets, Vars e Assets) ficam disponíveis como globais.
-    // Construímos um objeto "env" compatível com o restante do código.
+    // Service Worker format: Cloudflare exposes bindings on globalThis.
+    // Keep a process.env fallback for compatible runtimes, without ever
+    // placing secrets in the source code.
+    const readBinding = (name) => {
+      try {
+        const direct = globalThis[name];
+        if (typeof direct === "string" && direct.trim()) {
+          return direct.trim();
+        }
+        if (direct && typeof direct !== "string") {
+          return direct;
+        }
+      } catch (_) {}
+
+      try {
+        if (
+          typeof process !== "undefined" &&
+          process.env &&
+          typeof process.env[name] === "string" &&
+          process.env[name].trim()
+        ) {
+          return process.env[name].trim();
+        }
+      } catch (_) {}
+
+      return undefined;
+    };
+
     const env = {
-      GROQ_API_KEY:
-        (typeof GROQ_API_KEY !== "undefined" &&
-         typeof GROQ_API_KEY === "string" &&
-         GROQ_API_KEY.trim())
-          ? GROQ_API_KEY.trim()
-          : (typeof process !== "undefined" &&
-             process.env &&
-             typeof process.env.GROQ_API_KEY === "string" &&
-             process.env.GROQ_API_KEY.trim())
-              ? process.env.GROQ_API_KEY.trim()
-              : undefined,
-      ADMIN_PANEL_KEY:
-        (typeof ADMIN_PANEL_KEY !== "undefined" &&
-         typeof ADMIN_PANEL_KEY === "string" &&
-         ADMIN_PANEL_KEY.trim())
-          ? ADMIN_PANEL_KEY.trim()
-          : undefined,
-      CONVERSATIONS:
-        (typeof CONVERSATIONS !== "undefined" ? CONVERSATIONS : undefined),
-      VAPID_PUBLIC_KEY:
-        (typeof VAPID_PUBLIC_KEY !== "undefined" &&
-         typeof VAPID_PUBLIC_KEY === "string" &&
-         VAPID_PUBLIC_KEY.trim())
-          ? VAPID_PUBLIC_KEY.trim()
-          : (typeof process !== "undefined" &&
-             process.env &&
-             typeof process.env.VAPID_PUBLIC_KEY === "string" &&
-             process.env.VAPID_PUBLIC_KEY.trim())
-              ? process.env.VAPID_PUBLIC_KEY.trim()
-              : undefined,
-      VAPID_PRIVATE_KEY:
-        (typeof VAPID_PRIVATE_KEY !== "undefined" &&
-         typeof VAPID_PRIVATE_KEY === "string" &&
-         VAPID_PRIVATE_KEY.trim())
-          ? VAPID_PRIVATE_KEY.trim()
-          : (typeof process !== "undefined" &&
-             process.env &&
-             typeof process.env.VAPID_PRIVATE_KEY === "string" &&
-             process.env.VAPID_PRIVATE_KEY.trim())
-              ? process.env.VAPID_PRIVATE_KEY.trim()
-              : undefined,
-      ASSETS:
-        (typeof ASSETS !== "undefined" && ASSETS)
-          ? ASSETS
-          : undefined
+      GROQ_API_KEY: readBinding("GROQ_API_KEY"),
+      ADMIN_PANEL_KEY: readBinding("ADMIN_PANEL_KEY"),
+      CONVERSATIONS: readBinding("CONVERSATIONS"),
+      VAPID_PUBLIC_KEY: readBinding("VAPID_PUBLIC_KEY"),
+      VAPID_PRIVATE_KEY: readBinding("VAPID_PRIVATE_KEY"),
+      ASSETS: readBinding("ASSETS")
     };
     const url =
       new URL(request.url);
