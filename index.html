@@ -278,6 +278,20 @@ body{
 .attachment-size{font-size:12px;opacity:.65;margin-top:2px}
 .attachment-image{display:block;max-width:260px;max-height:260px;border-radius:10px;margin-bottom:6px}
 .document-status{font-size:12px;opacity:.7;margin-top:5px}
+.service-form-card{margin:16px 0;background:#fff;border:1px solid #cfddea;border-radius:18px;padding:16px;box-shadow:0 8px 24px rgba(7,26,53,.08)}
+.service-form-card h3{margin:0 0 5px;color:var(--navy);font-size:18px}
+.service-form-card p{margin:0 0 14px;color:#65758b;font-size:13px;line-height:1.45}
+.service-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.service-form-field{display:flex;flex-direction:column;gap:5px}
+.service-form-field.full{grid-column:1/-1}
+.service-form-field label{font-size:12px;font-weight:800;color:#33445a}
+.service-form-field input,.service-form-field textarea{width:100%;border:1px solid #cbd7e4;border-radius:11px;padding:10px 11px;font:inherit;outline:0;background:#fff}
+.service-form-field textarea{min-height:86px;resize:vertical}
+.service-form-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+.service-form-actions button{border:0;border-radius:11px;padding:10px 13px;font-weight:800;cursor:pointer}
+.service-form-submit{background:var(--navy);color:#fff}.service-form-download{background:#edf3f8;color:var(--navy)}
+.service-form-status{font-size:12px;color:#08704c;margin-top:8px}
+@media(max-width:650px){.service-form-grid{grid-template-columns:1fr}.service-form-field.full{grid-column:auto}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
@@ -908,6 +922,8 @@ function fmt(s){
    SINCRONIZAÇÃO COM O PAINEL ADMINISTRATIVO
    ========================================================= */
 let conversationSaveTimer=null;
+let currentServiceForm=null;
+let scheduleFormShown=false;
 async function saveConversationToAdmin(){
   if(!API_BASE || !sessionId) return;
   try{
