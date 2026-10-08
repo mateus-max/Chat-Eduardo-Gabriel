@@ -1161,6 +1161,26 @@ na base de conhecimento.
 
 ------------------------------------------------------------
 
+HORÁRIO DE ATENDIMENTO DO SR. EDUARDO
+------------------------------------------------------------
+
+Horário oficial, no fuso de Angola (Africa/Luanda):
+- Domingo: fechado para atendimento normal. Apenas questões de emergência.
+- Segunda-feira: 08:00–18:00.
+- Terça-feira: 08:00–18:00.
+- Quarta-feira: 08:00–18:00.
+- Quinta-feira: 08:00–18:00.
+- Sexta-feira: 08:00–18:00.
+- Sábado: 08:00–12:30.
+
+Fora do horário acima, o Sr. Eduardo não está disponível para atendimento normal.
+Não afirmar, insinuar ou prometer que ele está presente fora do expediente.
+Quando o atendimento estiver fora do horário, orientar o cliente a solicitar/agendar um atendimento urgente quando realmente precisar de atendimento fora do expediente.
+No domingo, deixar claro que somente situações de emergência devem ser encaminhadas; situações normais ficam para o próximo horário de expediente.
+Quando um atendimento urgente for solicitado fora do expediente, recolher apenas as informações necessárias para o encaminhamento, sem prometer um horário de resposta que não esteja confirmado.
+
+------------------------------------------------------------
+
 COMPORTAMENTO GERAL
 ------------------------------------------------------------
 
@@ -1430,6 +1450,40 @@ async function handleHealth(env) {
 }
 
 // ============================================================
+// HORÁRIO DE ATENDIMENTO — AFRICA/LUANDA
+// ============================================================
+
+function getEduardoScheduleStatus(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Africa/Luanda",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(now);
+
+  const weekday = parts.find(p => p.type === "weekday")?.value || "";
+  const hour = Number(parts.find(p => p.type === "hour")?.value || 0);
+  const minute = Number(parts.find(p => p.type === "minute")?.value || 0);
+  const minutes = hour * 60 + minute;
+  const dayMap = {Sun:0, Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6};
+  const day = dayMap[weekday];
+
+  if (day === 0) return {open:false, sunday:true, day, hour, minute};
+  if (day >= 1 && day <= 5) return {open:minutes >= 480 && minutes < 1080, sunday:false, day, hour, minute};
+  return {open:minutes >= 480 && minutes < 750, sunday:false, day, hour, minute};
+}
+
+function outOfHoursReply(language, isSunday = false) {
+  if (language === "en") {
+    if (isSunday) return "Mr. Eduardo Ngongoyove Gabriel is not available for normal service today. Sunday is reserved only for emergencies. If this is an emergency, please tell me that it is urgent and briefly explain the situation so it can be forwarded for appropriate attention. For normal matters, Mr. Eduardo will continue the assistance on the next business day during working hours.";
+    return "Mr. Eduardo Ngongoyove Gabriel is currently outside his working hours and is not available for normal service. If you need an urgent service outside the normal schedule, please tell me that the request is urgent and briefly explain what you need so it can be forwarded for appropriate handling. Otherwise, Mr. Eduardo will continue your assistance on the next business day during working hours.";
+  }
+  if (isSunday) return "O Sr. Eduardo Ngongoyove Gabriel não está disponível para atendimento normal hoje. O domingo é reservado apenas para situações de emergência. Se for uma emergência, por favor, informe que se trata de um caso urgente e explique brevemente a situação para que seja encaminhada para o devido tratamento. Para assuntos normais, o Sr. Eduardo dará continuidade ao atendimento no próximo dia útil, durante o horário de expediente.";
+  return "O Sr. Eduardo Ngongoyove Gabriel encontra-se neste momento fora do horário de expediente e não está disponível para atendimento normal. Se precisar de um serviço urgente fora do horário normal, por favor, informe que se trata de um pedido urgente e explique brevemente o que necessita para que seja encaminhado para o devido tratamento. Caso contrário, o Sr. Eduardo dará continuidade ao seu atendimento no próximo dia útil, durante o horário de expediente.";
+}
+
+// ============================================================
 // CHAT
 // ============================================================
 
@@ -1597,6 +1651,27 @@ async function handleChat(request, env) {
       formalName: null,
       identified: true,
       needsPhone: true
+    });
+  }
+
+  // ----------------------------------------------------------
+  // HORÁRIO DO PROPRIETÁRIO
+  // ----------------------------------------------------------
+
+  const scheduleStatus = getEduardoScheduleStatus();
+
+  if (!scheduleStatus.open) {
+    return json({
+      ok: true,
+      reply: outOfHoursReply(language, scheduleStatus.sunday),
+      clientName,
+      clientPhone,
+      clientTitle,
+      formalName: clientTitle + " " + clientName,
+      language,
+      identified: true,
+      outsideHours: true,
+      sundayEmergencyOnly: scheduleStatus.sunday
     });
   }
 
