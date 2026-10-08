@@ -40,7 +40,7 @@ body.conversation-screen-open #layout .detail .info{display:flex!important;visib
 .wa-icon-btn:hover{filter:brightness(.95)}
 .wa-icon-btn svg{width:24px;height:24px;fill:currentColor}
 .dots-btn{width:42px;height:42px;padding:0!important;border-radius:50%!important;font-size:23px!important;line-height:1}
-.conversation-open .info{justify-content:flex-start}
+.service-form-admin{margin-top:8px;padding:10px 12px;border:1px solid #dbe4ed;border-radius:12px;background:#f8fafc;display:flex;align-items:center;gap:9px;flex-wrap:wrap}.service-form-admin strong{color:#061a35}.service-form-admin .form-preview{font-size:12px;color:#68788d;max-width:520px}\n.conversation-open .info{justify-content:flex-start}
 .conversation-open .info .export-action{display:none!important}
 .conversation-open .info .delete-action{display:none!important}
 @media(max-width:800px){
@@ -54,7 +54,7 @@ body.conversation-screen-open #layout .detail .info{display:flex!important;visib
 }
 </style></head><body>
 <section id="login" class="login"><div class="card"><div class="brand">Eduardo Gabriel</div><p class="muted">Painel Administrativo de Atendimentos</p><input id="key" type="password" placeholder="Código administrativo"><button id="enter" class="btn primary full">Entrar no painel</button><div id="err" class="err"></div></div></section>
-<section id="app" class="hidden"><header class="top"><div><strong>Painel de Atendimentos</strong><br><small>Azny Gabriel → Eduardo Gabriel</small></div><div class="actions"><button id="install" class="btn hidden">📱 Instalar</button><button id="alerts" class="btn">🔔 Alertas</button><button id="refresh" class="btn">↻ Atualizar</button><button id="logout" class="btn">Sair</button></div></header>
+<section id="app" class="hidden"><header class="top"><div><strong>Painel de Atendimentos</strong><br><small>Azny Gabriel → Eduardo Gabriel</small></div><div class="actions"><button id="install" class="btn hidden">📱 Instalar</button><button id="notify" class="btn">🔔 Ativar notificações</button><button id="refresh" class="btn">↻ Atualizar</button><button id="logout" class="btn">Sair</button></div></header>
 <div id="layout" class="layout"><aside class="side"><div class="sidehead"><b>Conversas</b><div id="count" class="muted">0 atendimentos</div><input id="search" placeholder="Pesquisar cliente..."></div><div id="list"></div></aside>
 <main class="detail"><div id="head" class="dh"><div><b>Selecione uma conversa</b><div class="muted">O histórico aparecerá aqui.</div></div></div><div id="msgs" class="msgs"><div class="empty">Escolha um atendimento na lista.</div></div><div id="info" class="info hidden"></div></main></div></section>
 <script>
@@ -66,7 +66,7 @@ function safe(v){return String(v||"cliente").replace(/[^a-z0-9_-]+/gi,"-").toLow
 function date(v){try{return new Date(v).toLocaleString("pt-AO",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}catch(e){return""}}
 function last(c){var h=c.history||[];return h.length?String(h[h.length-1].text||"").slice(0,48):"Sem mensagens"}
 var autoRefreshTimer=null;function startAutoRefresh(){if(autoRefreshTimer)return;autoRefreshTimer=setInterval(function(){load()},3000)}
-async function login(){var key=$("key").value.trim(),r=await fetch(API_BASE+"/api/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:key})}),d=await r.json().catch(function(){return{}});if(!r.ok||!d.token){$("err").textContent=d.error||"Não foi possível entrar.";return}token=d.token;sessionStorage.setItem("admin_token",token);$("login").classList.add("hidden");$("app").classList.remove("hidden");load();startAutoRefresh()}
+async function login(){var key=$("key").value.trim(),r=await fetch(API_BASE+"/api/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:key})}),d=await r.json().catch(function(){return{}});if(!r.ok||!d.token){$("err").textContent=d.error||"Não foi possível entrar.";return}token=d.token;sessionStorage.setItem("admin_token",token);$("login").classList.add("hidden");$("app").classList.remove("hidden");load();startAutoRefresh();if(window.setupAdminNotifications)window.setupAdminNotifications()}
 async function api(path,opt){opt=opt||{};opt.headers=Object.assign({},opt.headers||{},{Authorization:"Bearer "+token});var r=await fetch(API_BASE+path,opt);if(r.status===401){sessionStorage.removeItem("admin_token");location.reload()}return r}
 function conversationSignature(c){if(!c)return"";var h=c.history||[],last=h.length?h[h.length-1]:null;return[String(c.sessionId||""),String(c.updatedAt||""),String(c.clientName||""),String(c.phone||""),String(h.length),String(last&&last.type||""),String(last&&last.text||"")].join("|")}
 async function load(){
@@ -161,7 +161,8 @@ function renderDetail(){
   $("info").classList.remove("hidden");
   $("info").innerHTML=
     '<div class="info-group"><span class="info-label">Serviço:</span><span class="info-value">'+esc(selected.service||"Atendimento geral")+'</span></div>'+
-    '<div class="info-group"><span class="info-label">WhatsApp:</span><input id="phone" value="'+esc(selected.phone||"")+'" placeholder="Número do cliente"><button class="btn" onclick="savePhone()">Guardar</button></div>';
+    '<div class="info-group"><span class="info-label">WhatsApp:</span><input id="phone" value="'+esc(selected.phone||"")+'" placeholder="Número do cliente"><button class="btn" onclick="savePhone()">Guardar</button></div>'+
+    (selected.serviceForm ? '<div class="service-form-admin"><strong>📅 Formulário de agendamento registado</strong><span class="form-preview">'+esc(selected.serviceForm.service||selected.service||"Serviço")+'</span><button class="btn primary" onclick="downloadServiceFormAdmin()">⬇️ Baixar formulário</button></div>' : '');
 
   msgBox.dataset.sessionId=String(selected.sessionId);
   if(preserveScroll){
@@ -178,10 +179,18 @@ function savePhone(){var p=$("phone").value.trim();selected.phone=p;fetch(API_BA
 async function deleteConversation(){if(!selected)return;var name=selected.clientName||"esta conversa";if(!confirm("Eliminar definitivamente a conversa de "+name+"?\n\nEsta ação não pode ser desfeita."))return;var id=selected.sessionId;var r=await api("/api/admin/conversations/"+encodeURIComponent(id),{method:"DELETE"});var d=await r.json().catch(function(){return{}});if(!r.ok){alert(d.error||"Não foi possível eliminar a conversa.");return}selected=null;closeConversation();await load()}
 function whatsapp(){var p=String(selected.phone||"").replace(/\D/g,"");if(p.indexOf("00")===0)p=p.slice(2);if(p.charAt(0)==="0")p="244"+p.slice(1);if(!p){alert("Informe primeiro o número de WhatsApp do cliente.");return}var clean=String(selected.clientName||"").replace(/^(sr\.?|sra\.?|senhor|senhora)\s+/i,"");var title=/^(sra|senhora)\b/i.test(selected.clientName||"")?"Sra. ":"Sr. ";var msg="Olá, "+title+clean+". Aqui é o Eduardo Gabriel. Tomei conhecimento da sua conversa com a minha assistente Azny Gabriel e vou dar continuidade pessoalmente ao seu atendimento.";window.open("https://wa.me/"+p+"?text="+encodeURIComponent(msg),"_blank")}
 function download(t,n,type){var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:type}));a.download=n;a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},1000)}
+function downloadServiceFormAdmin(){
+  if(!selected||!selected.serviceForm)return;
+  var f=selected.serviceForm;
+  var lines=["FORMULÁRIO DE AGENDAMENTO — EDUARDO GABRIEL","Serviço: "+(f.service||selected.service||""),"Nome completo: "+(f.clientName||selected.clientName||""),"WhatsApp: "+(f.clientPhone||selected.phone||""),"Idioma: "+(f.language||selected.language||"pt"),""];
+  Object.keys(f.fields||{}).forEach(function(k){lines.push(k+": "+String(f.fields[k]||""))});
+  lines.push("","Registado em: "+(f.updatedAt||f.createdAt||selected.updatedAt||""));
+  download(lines.join("\n"),"formulario-"+safe(f.service||selected.service||"agendamento")+".txt","text/plain;charset=utf-8");
+}
 function exportTxt(){var h=(selected.history||[]).map(function(m){return (m.type==="user"?"CLIENTE":"AZNY")+": "+m.text}).join("\n");download("ATENDIMENTO — "+(selected.clientName||"Cliente")+"\nTelefone: "+(selected.phone||"—")+"\n\n"+h,"atendimento-"+safe(selected.clientName)+".txt","text/plain;charset=utf-8")}
 function exportJson(){download(JSON.stringify(selected,null,2),"atendimento-"+safe(selected.clientName)+".json","application/json;charset=utf-8")}
 $("enter").onclick=login;$("key").onkeydown=function(e){if(e.key==="Enter")login()};$("refresh").onclick=load;$("logout").onclick=function(){sessionStorage.removeItem("admin_token");location.reload()};$("search").oninput=renderList;
-if(token){$("login").classList.add("hidden");$("app").classList.remove("hidden");load();startAutoRefresh()}
+if(token){$("login").classList.add("hidden");$("app").classList.remove("hidden");load();startAutoRefresh();if(window.setupAdminNotifications)window.setupAdminNotifications()}
 window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();deferred=e;$("install").classList.remove("hidden")});$("install").onclick=function(){if(deferred){deferred.prompt();deferred=null;$("install").classList.add("hidden")}};
 if("serviceWorker" in navigator)navigator.serviceWorker.register("admin-sw.js?v=20261007-2235").catch(function(){});
-</script></body></html>
+</script><script src="/admin-push.js?v=20261008-01"></script></body></html>
