@@ -278,6 +278,20 @@ body{
 .attachment-size{font-size:12px;opacity:.65;margin-top:2px}
 .attachment-image{display:block;max-width:260px;max-height:260px;border-radius:10px;margin-bottom:6px}
 .document-status{font-size:12px;opacity:.7;margin-top:5px}
+.service-form-card{margin:16px 0;background:#fff;border:1px solid #cfddea;border-radius:18px;padding:16px;box-shadow:0 8px 24px rgba(7,26,53,.08)}
+.service-form-card h3{margin:0 0 5px;color:var(--navy);font-size:18px}
+.service-form-card p{margin:0 0 14px;color:#65758b;font-size:13px;line-height:1.45}
+.service-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.service-form-field{display:flex;flex-direction:column;gap:5px}
+.service-form-field.full{grid-column:1/-1}
+.service-form-field label{font-size:12px;font-weight:800;color:#33445a}
+.service-form-field input,.service-form-field textarea{width:100%;border:1px solid #cbd7e4;border-radius:11px;padding:10px 11px;font:inherit;outline:0;background:#fff}
+.service-form-field textarea{min-height:86px;resize:vertical}
+.service-form-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+.service-form-actions button{border:0;border-radius:11px;padding:10px 13px;font-weight:800;cursor:pointer}
+.service-form-submit{background:var(--navy);color:#fff}.service-form-download{background:#edf3f8;color:var(--navy)}
+.service-form-status{font-size:12px;color:#08704c;margin-top:8px}
+@media(max-width:650px){.service-form-grid{grid-template-columns:1fr}.service-form-field.full{grid-column:auto}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
@@ -322,7 +336,7 @@ body{
   <div class="composer-tools">
     <button id="emojiBtn" type="button" aria-label="Emoji">😊</button>
     <button id="attachBtn" type="button" aria-label="Anexar">📎</button>
-    <input id="fileInput" type="file" hidden multiple accept="image/*,audio/*,.pdf,.doc,.docx,.txt,.csv,.xlsx,.xls">
+    <input id="fileInput" type="file" hidden multiple accept="image/*,.pdf,.doc,.docx,.txt,.csv,.xlsx,.xls">
     <button id="voiceBtn" type="button" aria-label="Mensagem de voz">🎙️</button>
     <input id="input" autocomplete="off" placeholder="Escreva a sua mensagem..." style="flex:1">
     <button id="send" aria-label="Enviar">➤</button>
@@ -530,7 +544,7 @@ async function askWithDocument(question,documentContext){
       ...ctx,
       tratamento:detectarTratamento(nomeCliente()),
       identificacao_cliente:tratamentoCliente(),
-      instrucao_tratamento:"Trate o cliente com respeito. Use Senhor/Senhora e o nome apenas quando for natural; não repita o nome no início de todas as respostas."
+      instrucao_tratamento:"Trate o cliente de forma respeitosa como Senhor [Nome] ou Senhora [Nome]."
     },
     history:history.slice(-20)
   };
@@ -542,21 +556,6 @@ async function askWithDocument(question,documentContext){
   const data=await r.json().catch(()=>({}));
   if(!r.ok) throw new Error(data.error||"Falha no atendimento.");
   return data;
-}
-
-async function transcribeAudioBlob(blob, filename="voice.webm", language="pt"){
-  const form = new FormData();
-  form.append("audio", blob, filename);
-  if(language) form.append("language", language);
-  const tr = await fetch(`${API_BASE}/api/transcribe`, {
-    method:"POST",
-    body:form
-  });
-  const data = await tr.json().catch(()=>({}));
-  if(!tr.ok || !data.transcript){
-    throw new Error(data.error || "Não foi possível compreender o áudio.");
-  }
-  return String(data.transcript).trim();
 }
 
 async function processAttachment(file){
@@ -576,30 +575,6 @@ async function processAttachment(file){
   try{
     let contextText="";
     let replyQuestion=question;
-
-    if(file.type.startsWith("audio/")){
-      contextText=await transcribeAudioBlob(file, file.name || "audio.webm", "pt");
-      activeDocumentContext=`Áudio: ${file.name}
-
-Transcrição:
-${contextText}`;
-      activeDocumentName=file.name;
-      setAttachmentStatus(row,"Áudio transcrito e mantido no contexto da conversa.");
-      const data=await askWithDocument(
-        replyQuestion||"Responda diretamente ao pedido contido no áudio, mantendo o contexto da conversa.",
-        activeDocumentContext
-      );
-      typingRow.remove();
-      if(!data.reply) throw new Error("A IA não devolveu uma resposta.");
-      add(data.reply,"bot");
-      if(data.clientName) ctx.nome=data.clientName;
-    if(data.clientPhone) ctx.telefone=data.clientPhone;
-      history.push({text:contextText,type:"user"});
-      history.push({text:data.reply,type:"bot"});
-      queueConversationSave();
-      if(data.quick_replies) quick(data.quick_replies);
-      return;
-    }
 
     if(isImage){
       contextText=await analyzeImageFile(file,question||"Analise esta imagem e explique claramente o que ela contém. Leia também o texto visível.");
@@ -859,6 +834,7 @@ function nomeCliente(){
 
 function detectarIdiomaInicial(text){
   const value=String(text||"").toLowerCase();
+  if(!value) return "pt";
   const pt=["olá","ola","oi","bom dia","boa tarde","boa noite","preciso","gostaria","quero","tenho","sou","me chamo","meu nome","senhor","senhora","preço","preco","quanto","serviço","servico","ajuda","número","numero","por favor","obrigado","obrigada","pode"];
   const en=["hello","hi","good morning","good afternoon","good evening","i need","i would like","i want","i have","i am","i'm","my name","mr","mrs","ms","sir","madam","price","how much","service","help","number","please","thank you","can you","could you","where","what","when"];
   let p=0,e=0;
@@ -874,8 +850,14 @@ function detectarIdiomaInicial(text){
 function tratamentoCliente(){
 
   const nome = nomeCliente();
+  const idioma = ctx.idioma || "pt";
+  const tratamento = detectarTratamento(nome);
 
-  return `${detectarTratamento(nome)}${nome ? " " + nome : ""}`;
+  if(idioma === "en"){
+    return `${tratamento === "Senhora" ? "Ms." : "Mr."}${nome ? " " + nome : ""}`;
+  }
+
+  return `${tratamento}${nome ? " " + nome : ""}`;
 
 }
 
@@ -940,6 +922,8 @@ function fmt(s){
    SINCRONIZAÇÃO COM O PAINEL ADMINISTRATIVO
    ========================================================= */
 let conversationSaveTimer=null;
+let currentServiceForm=null;
+let scheduleFormShown=false;
 async function saveConversationToAdmin(){
   if(!API_BASE || !sessionId) return;
   try{
@@ -949,7 +933,10 @@ async function saveConversationToAdmin(){
       body:JSON.stringify({
         session_id:sessionId,
         context:ctx,
-        history:history.slice(-100)
+        clientName:ctx.nome || "",
+        clientPhone:ctx.telefone || "",
+        history:history.slice(-100),
+        service_form: currentServiceForm || null
       })
     });
   }catch{}
@@ -957,6 +944,165 @@ async function saveConversationToAdmin(){
 function queueConversationSave(){
   clearTimeout(conversationSaveTimer);
   conversationSaveTimer=setTimeout(saveConversationToAdmin,1200);
+}
+
+/* =========================================================
+   FORMULÁRIOS DE AGENDAMENTO POR SERVIÇO
+   ========================================================= */
+const SERVICE_FORMS = {
+  "Criação de websites":[
+    ["objetivo","Objetivo do website","text",true],
+    ["tipo","Tipo de website","text",true],
+    ["funcionalidades","Funcionalidades ou páginas pretendidas","textarea",true],
+    ["dominio","Domínio/website atual","text",false],
+    ["prazo","Prazo pretendido","text",false],
+    ["observacoes","Observações adicionais","textarea",false]
+  ],
+  "Sistemas de gestão empresarial":[
+    ["empresa","Nome da empresa","text",true],
+    ["processos","Processos que pretende gerir","textarea",true],
+    ["modulos","Módulos/funcionalidades","textarea",true],
+    ["utilizadores","Número de utilizadores","text",false],
+    ["integracoes","Integrações necessárias","text",false],
+    ["prazo","Prazo pretendido","text",false],
+    ["observacoes","Observações adicionais","textarea",false]
+  ],
+  "Aplicativos":[
+    ["objetivo","Objetivo do aplicativo","textarea",true],
+    ["plataforma","Plataforma","text",true],
+    ["funcionalidades","Principais funcionalidades","textarea",true],
+    ["utilizadores","Público/utilizadores","text",false],
+    ["integracoes","Integrações necessárias","text",false],
+    ["prazo","Prazo pretendido","text",false],
+    ["observacoes","Observações adicionais","textarea",false]
+  ],
+  "Emails corporativos":[
+    ["empresa","Nome da empresa","text",true],
+    ["dominio","Domínio da empresa","text",true],
+    ["contas","Número de emails","text",true],
+    ["nomes","Contas/endereço dos emails","textarea",false],
+    ["prazo","Prazo pretendido","text",false],
+    ["observacoes","Observações adicionais","textarea",false]
+  ],
+  "Acompanhamento Hospitalar na Namíbia":[
+    ["paciente","Nome completo do paciente","text",true],
+    ["cidade","Cidade na Namíbia","text",true],
+    ["hospital","Hospital/clínica","text",true],
+    ["data","Data da consulta","date",true],
+    ["hora","Hora prevista","text",false],
+    ["necessidade","Tipo de acompanhamento","textarea",true],
+    ["observacoes","Observações adicionais","textarea",false]
+  ],
+  "Compras na Namíbia":[
+    ["cidade","Cidade/local de compra","text",true],
+    ["produtos","Produtos e quantidades","textarea",true],
+    ["orcamento","Orçamento disponível","text",false],
+    ["data","Data pretendida","date",false],
+    ["entrega","Local/forma de entrega","text",false],
+    ["observacoes","Observações adicionais","textarea",false]
+  ],
+  "Recebimento e envio de encomendas":[
+    ["remetente","Nome do remetente","text",true],
+    ["destinatario","Nome do destinatário","text",true],
+    ["origem","Local de origem","text",true],
+    ["destino","Local de destino","text",true],
+    ["conteudo","Descrição da encomenda","textarea",true],
+    ["peso","Peso/quantidade aproximada","text",false],
+    ["data","Data pretendida","date",false],
+    ["observacoes","Observações adicionais","textarea",false]
+  ]
+};
+
+function inferServiceForForm(text){
+  const sample=[ctx.servico||""].concat(history.slice(-12).map(function(x){return x.text||""})).concat([text||""]).join(" ").toLowerCase();
+  const aliases={
+    "Criação de websites":["website","web site","site institucional","criação de site","criacao de site"],
+    "Sistemas de gestão empresarial":["sistema de gestão","sistema de gestao","gestão empresarial","gestao empresarial","erp"],
+    "Aplicativos":["aplicativo","aplicativos"," app ","android","ios","aplicação móvel","aplicacao movel"],
+    "Emails corporativos":["email corporativo","emails corporativos","e-mail corporativo"],
+    "Acompanhamento Hospitalar na Namíbia":["acompanhamento hospitalar","hospital na namíbia","hospital na namibia"],
+    "Compras na Namíbia":["compras na namíbia","compras na namibia","comprar na namíbia","comprar na namibia"],
+    "Recebimento e envio de encomendas":["encomenda","encomendas","enviar pacote","receber pacote"]
+  };
+  for(const name in aliases){
+    if(aliases[name].some(function(w){return sample.indexOf(w)>=0})) return name;
+  }
+  return "";
+}
+
+function isScheduleConfirmation(text){
+  const value=String(text||"").trim().toLowerCase();
+  return /^(sim|yes|sure|ok|okay|claro|quero|pode|sim quero|yes please)$/i.test(value)
+    || /(quero agendar|quero marcar|sim, quero|yes, please|i want to schedule|i would like to schedule|book it|schedule it)/i.test(value);
+}
+
+function formFieldHtml(field){
+  const key=field[0],label=field[1],type=field[2],required=field[3];
+  const cls=type==="textarea"?"service-form-field full":"service-form-field";
+  if(type==="textarea") return '<div class="'+cls+'"><label>'+esc(label)+(required?" *":"")+'</label><textarea id="sf_'+esc(key)+'" '+(required?"required":"")+'></textarea></div>';
+  return '<div class="'+cls+'"><label>'+esc(label)+(required?" *":"")+'</label><input id="sf_'+esc(key)+'" type="'+esc(type)+'" '+(required?"required":"")+'></div>';
+}
+
+function serviceFormRequiredOk(name,card){
+  return SERVICE_FORMS[name].filter(function(f){return f[3]}).every(function(f){
+    const el=card.querySelector("#sf_"+f[0]);
+    return el && String(el.value||"").trim();
+  });
+}
+
+function downloadServiceForm(data){
+  const lines=["FORMULÁRIO DE AGENDAMENTO — EDUARDO GABRIEL","Serviço: "+data.service,"Nome completo: "+data.clientName,"WhatsApp: "+data.clientPhone,""];
+  Object.keys(data.fields||{}).forEach(function(k){lines.push(k+": "+String(data.fields[k]||""))});
+  lines.push("","Registado em: "+new Date(data.updatedAt||Date.now()).toLocaleString("pt-AO"));
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([lines.join("\n")],{type:"text/plain;charset=utf-8"}));
+  a.download="formulario-"+String(data.service||"agendamento").replace(/[^a-z0-9]+/gi,"-").toLowerCase()+".txt";
+  a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href)},1000);
+}
+
+function openServiceForm(service){
+  if(scheduleFormShown) return;
+  const name=SERVICE_FORMS[service]?service:inferServiceForForm(service);
+  if(!name || !SERVICE_FORMS[name]) return;
+  scheduleFormShown=true;
+  ctx.servico=name;
+  const chat=document.getElementById("chat");
+  const card=document.createElement("section");
+  card.id="serviceFormCard";
+  card.className="service-form-card";
+  card.innerHTML='<h3>📅 Formulário de agendamento</h3><p>Preencha os dados para <strong>'+esc(name)+'</strong>. O formulário será registado para o Sr. Eduardo e poderá baixar uma cópia.</p><div class="service-form-grid"><div class="service-form-field"><label>Nome completo *</label><input id="sf_clientName" value="'+esc(ctx.nome||"")+'"></div><div class="service-form-field"><label>WhatsApp *</label><input id="sf_clientPhone" value="'+esc(ctx.telefone||"")+'"></div>'+SERVICE_FORMS[name].map(formFieldHtml).join("")+'</div><div class="service-form-actions"><button type="button" class="service-form-submit" id="sf_submit">Registar pedido</button><button type="button" class="service-form-download" id="sf_download" disabled>⬇️ Baixar cópia</button></div><div class="service-form-status" id="sf_status"></div>';
+  chat.appendChild(card);
+  card.scrollIntoView({behavior:"smooth",block:"end"});
+  let saved=null;
+  function collect(){
+    const fields={};
+    SERVICE_FORMS[name].forEach(function(f){fields[f[0]]=String(card.querySelector("#sf_"+f[0])?.value||"").trim()});
+    return {service:name,clientName:String(card.querySelector("#sf_clientName")?.value||"").trim(),clientPhone:String(card.querySelector("#sf_clientPhone")?.value||"").trim(),language:ctx.idioma||"pt",fields:fields,createdAt:saved?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+  }
+  card.querySelector("#sf_submit").onclick=async function(){
+    if(!card.querySelector("#sf_clientName").value.trim() || !card.querySelector("#sf_clientPhone").value.trim() || !serviceFormRequiredOk(name,card)){
+      card.querySelector("#sf_status").textContent="Preencha todos os campos obrigatórios.";
+      return;
+    }
+    const data=collect();
+    ctx.nome=data.clientName;
+    ctx.telefone=data.clientPhone;
+    currentServiceForm=data;
+    card.querySelector("#sf_status").textContent="A registar o formulário...";
+    try{
+      const r=await fetch(API_BASE+"/api/conversations/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_id:sessionId,context:ctx,clientName:ctx.nome,clientPhone:ctx.telefone,history:history.slice(-100),service_form:data})});
+      const d=await r.json().catch(function(){return{}});
+      if(!r.ok) throw new Error(d.error||"Não foi possível guardar o formulário.");
+      saved=data;
+      card.querySelector("#sf_download").disabled=false;
+      card.querySelector("#sf_download").onclick=function(){downloadServiceForm(saved)};
+      card.querySelector("#sf_status").textContent="Formulário registado. O Sr. Eduardo poderá baixá-lo na área administrativa.";
+      queueConversationSave();
+    }catch(err){
+      card.querySelector("#sf_status").textContent=err.message||"Não foi possível registar o formulário.";
+    }
+  };
 }
 
 /* =========================================================
@@ -1199,7 +1345,9 @@ function showIntro(){
 
 
   const saudacao = ctx.nome
+
     ? `Olá, **${detectarTratamento(nomeCliente())} ${nomeCliente()}**! 👋`
+
     : "Olá! 👋";
 
 
@@ -1212,12 +1360,16 @@ function showIntro(){
 
   const horarioEduardo =
     horaLuanda >= 19
-      ? "O **Sr. Eduardo Ngongoyove Gabriel** encontra-se indisponível no momento. Assim que estiver disponível novamente, poderá responder com a maior brevidade possível."
+      ? "O senhor Eduardo encontra-se indisponível no momento. Assim que estiver disponível novamente, poderá responder com a maior brevidade possível."
       : "";
 
   let intro = `${saudacao}
 
-Sou a **Azny Gabriel**, assistente virtual do **Sr. Eduardo Ngongoyove Gabriel**. Antes de continuarmos, por favor, diga-me o seu nome.`;
+Olá, seja muito bem-vindo(a)! 👋
+Sou a **Azny Gabriel, assistente virtual do senhor Eduardo**.
+${horarioEduardo ? horarioEduardo + " " : ""}Estou disponível para prestar as primeiras informações, esclarecer as suas dúvidas e encaminhar o seu atendimento.
+
+**Com quem tenho o prazer de falar?**`;
 
 
   say(
@@ -1276,26 +1428,17 @@ Pode perguntar diretamente o que pretende saber sobre esse assunto.`,
    API
    ========================================================= */
 
-const DEPLOYED_API_BASE =
-  "https://chat-eduardo-gabriel.eduardongabriel354.workers.dev";
-
 const queryApi =
   new URLSearchParams(location.search)
     .get("api") || "";
 
-const configuredApi =
-  queryApi ||
-  window.EDUARDO_API_URL ||
-  DEPLOYED_API_BASE;
 
-/*
- * O chat pode ser aberto tanto no GitHub Pages como num workers.dev.
- * O endereço do frontend não deve decidir qual backend usar.
- * O backend oficial é sempre o Worker de produção, salvo quando
- * o utilizador informar explicitamente ?api=...
- */
 const API_BASE =
-  configuredApi.replace(/\/$/,"");
+  (
+    queryApi ||
+    window.EDUARDO_API_URL ||
+    ""
+  ).replace(/\/$/,"");
 
 
 const IS_LOCAL_FILE =
@@ -1310,8 +1453,8 @@ const EDUARDO_WHATSAPP_URL = "https://wa.me/244931057760";
 
 function isCallRequest(text){
   const value = String(text || "");
-  return /(?:ligar|ligue|chamar|telefonar|fazer uma chamada|fazer chamada|quero falar|gostaria de falar|pretendo falar|falar com|fale com|speak to|talk to|call|phone|ring)/i.test(value)
-    && /(?:eduardo|senhor eduardo|sr\.?\s*eduardo|mr\.?\s*eduardo)/i.test(value);
+  return /(?:ligar|ligue|chamar|telefonar|fazer uma chamada|fazer chamada|call|phone|ring|speak to|talk to)/i.test(value)
+    && /(?:eduardo|senhor eduardo|mr\.?\s*eduardo)/i.test(value);
 }
 
 function openEduardoWhatsApp(){
@@ -1327,7 +1470,6 @@ async function processVoiceMessage(blob){
 
     const form = new FormData();
     form.append("audio", blob, "voice.webm");
-    form.append("language", "pt");
 
     const tr = await fetch(`${API_BASE}/api/transcribe`, {
       method:"POST",
@@ -1371,7 +1513,7 @@ async function processVoiceMessage(blob){
 
     typingRow.remove();
     add(data.reply || "Desculpe, não consegui preparar a resposta agora.","bot");
-    if(data.clientName && !ctx.nome) ctx.nome=data.clientName;
+    if(data.clientName) ctx.nome=data.clientName;
     if(data.clientPhone) ctx.telefone=data.clientPhone;
     if(data.language) ctx.idioma=data.language;
 
@@ -1382,7 +1524,7 @@ async function processVoiceMessage(blob){
     chat.scrollTop=chat.scrollHeight;
   }catch(err){
     typingRow.remove();
-    add("Peço desculpa, não consegui compreender bem o áudio. Se puder, envie-o novamente ou escreva a mensagem e continuarei a ajudá-lo(a).","bot");
+    add("Peço desculpa, não foi possível processar a mensagem de voz neste momento. Por favor, tente novamente.","bot");
     console.error(err);
   }
 }
@@ -1408,11 +1550,47 @@ async function send(){
     ctx.idioma=detectarIdiomaInicial(text);
   }
 
+  add(
+    text,
+    "user"
+  );
+
+
+  input.value = "";
+
+  quick([]);
+
+  const scheduleService=inferServiceForForm(text);
+  const lastBotText=[...history].reverse().find(function(item){return item.type==="bot"})?.text||"";
+  if(isScheduleConfirmation(text) && scheduleService && /agendar|agendamento|marcar|marcação|marcacao|schedule|appointment|book/i.test(lastBotText)){
+    openServiceForm(scheduleService);
+    queueConversationSave();
+    return;
+  }
+
+  if(isCallRequest(text)){
+    const isEnglish = /\b(call|phone|ring|speak to|talk to)\b/i.test(text);
+    say(
+      isEnglish
+        ? "I’m opening the official WhatsApp contact for Mr. Eduardo now."
+        : "Vou abrir agora o WhatsApp oficial do Sr. Eduardo.",
+      180
+    );
+    openEduardoWhatsApp();
+    return;
+  }
+
+
+  /*
+   * Tentar descobrir o nome se o cliente
+   * ainda não veio identificado.
+   */
+
   if(!ctx.nome){
 
     const m =
       text.match(
-        /^(?:eu sou|sou|meu nome é|meu nome e|chamo-me|chamo me|falas com|fala com|está a falar com|estou a falar com|aqui fala)\s+(?:o\s+|a\s+)?(?:sr\.?\s+|senhor\s+|sra\.?\s+|senhora\s+)?(.+)$/i
+        /^(?:eu sou|sou|meu nome é|chamo-me|chamo me|falas com|fala com|está a falar com|estou a falar com|aqui fala)\s+(?:o\s+|a\s+)?(?:sr\.?\s+|senhor\s+|sra\.?\s+|senhora\s+)?(.+)$/i
       );
 
     if(m){
@@ -1426,27 +1604,20 @@ async function send(){
       !/^(olá|ola|oi|olá senhor|bom dia|boa tarde|boa noite|sim|não|nao|obrigado|obrigada|por favor|quanto|quanto custa|preço|preco)$/i.test(text) &&
       !/(site|website|plataforma|software|sistema|tradução|traducao|marketing|design|curso|inglês|ingles|música|musica|piano|partitura|namíbia|namibia|windhoek|oshakati|ongwediva|ondangwa|hospital|consulta|preço|preco|valor|pagamento|envio|encomenda|pacote|câmbio|cambio|importação|importacao|visto|visa)/i.test(text)
     ){
-      const recent =
-        history.slice(-5).some(item =>
-          item.type === "bot" &&
-          /diga-me o seu nome|qual é o seu nome|qual e o seu nome|para continuarmos.*nome/i.test(String(item.text || ""))
-        );
+      // Quando o assistente acabou de pedir o nome, uma resposta
+      // simples como "Paulo" também é uma apresentação válida.
+      const recent = history.slice(-5).some(item =>
+        item.type === "bot" &&
+        /diga-me o seu nome|qual é o seu nome|qual e o seu nome|para continuarmos.*nome/i.test(String(item.text || ""))
+      );
 
       if(recent){
         ctx.nome = normalizarNome(text);
       }
     }
+
   }
 
-  add(
-    text,
-    "user"
-  );
-
-
-  input.value = "";
-
-  quick([]);
 
   const payload = {
 
@@ -1467,7 +1638,9 @@ async function send(){
         tratamentoCliente(),
 
       instrucao_tratamento:
-        "Trate o cliente de forma respeitosa como Senhor [Nome] ou Senhora [Nome] quando for natural. Não é necessário repetir o nome do cliente em todas as respostas; use o nome apenas quando contribuir para a naturalidade do atendimento."
+        ctx.idioma === "en"
+          ? "Address the client formally as Mr. [Full Name] for men or Ms. [Full Name] for women. Keep the conversation entirely in English."
+          : "Trate o cliente formalmente como Sr. [Nome completo] ou Sra. [Nome completo]. Mantenha a conversa inteiramente em Português."
 
     },
 
@@ -1520,18 +1693,7 @@ async function send(){
 
 
     if(!r.ok){
-      const backendMessage =
-        typeof data?.error === "string"
-          ? data.error.trim()
-          : "";
-
-      const error = new Error(
-        backendMessage || "ATENDIMENTO_INDISPONIVEL"
-      );
-
-      error.status = r.status;
-      error.code = data?.code || "";
-      throw error;
+      throw new Error("ATENDIMENTO_INDISPONIVEL");
     }
 
 
@@ -1547,6 +1709,10 @@ async function send(){
     if(data.clientName) ctx.nome=data.clientName;
     if(data.clientPhone) ctx.telefone=data.clientPhone;
     if(data.language) ctx.idioma=data.language;
+    if(data.serviceDetected) ctx.servico=data.serviceDetected;
+
+    // Persistir imediatamente identidade e serviço identificado.
+    queueConversationSave();
 
     if(data.quick_replies)
       quick(
@@ -1575,7 +1741,7 @@ async function send(){
 
 
     let friendly =
-      "Peço desculpa, não foi possível concluir o atendimento neste momento. Pode tentar novamente ou, se preferir, falar diretamente com o Sr. Eduardo.";
+      "Neste momento não consegui ligar ao atendimento inteligente.";
 
 
     if(
