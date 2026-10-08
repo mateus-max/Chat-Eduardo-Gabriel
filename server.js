@@ -1314,6 +1314,11 @@ REGRAS CRÍTICAS:
     em discussão, salvo indicação contrária.
 20. Se o cliente disser apenas uma resposta curta, use o
     contexto anterior para interpretá-la.
+21. Quando o cliente estiver a tratar de um serviço específico e as dúvidas principais desse serviço tiverem sido respondidas, pergunte de forma natural se deseja agendar o serviço.
+22. Não repita a pergunta sobre agendamento se ela já tiver sido feita e o cliente ainda não tiver respondido.
+23. Se o cliente disser que SIM, quer agendar, o sistema deverá apresentar o formulário específico desse serviço. Não peça novamente nome completo ou WhatsApp se esses dados já estiverem registados.
+24. Se o cliente disser que NÃO, continue normalmente sem insistir no agendamento.
+25. O agendamento deve ser específico ao serviço em discussão; nunca apresentar um formulário genérico quando houver um serviço identificável.
 
 IMPORTANTE SOBRE IDENTIFICAÇÃO:
 
@@ -1333,6 +1338,8 @@ REGRAS FINAIS DE IDIOMA E TRATAMENTO — PRIORIDADE MÁXIMA:
 - Se o cliente já tiver fornecido nome e WhatsApp, não peça nenhum dos dois novamente; continue diretamente com o assunto.
 - Se o idioma for Português, use "Sr." para homem e "Sra." para mulher.
 - Nunca reinicie a conversa nem repita uma pergunta já respondida.
+- Após explicar adequadamente um serviço específico, pergunte se o cliente deseja agendar esse serviço.
+- Se o cliente confirmar que deseja agendar, a interface apresentará o formulário específico; não invente campos nem peça os mesmos dados de identificação novamente.
 `;
 }
 
@@ -1484,6 +1491,43 @@ function outOfHoursReply(language, isSunday = false) {
 }
 
 // ============================================================
+// SERVIÇO DETETADO / AGENDAMENTO
+// ============================================================
+
+function detectServiceTopic(text, history = [], context = {}) {
+  const explicit = String(context?.servico || "").trim();
+  if (explicit) return explicit;
+
+  const sample = [
+    ...history.map(x => x?.content || ""),
+    String(text || "")
+  ].join(" ").toLowerCase();
+
+  const rules = [
+    {name:"Criação de websites", words:["criação de website","criacao de website","criação de site","criacao de site","website","web site","site institucional","landing page"]},
+    {name:"Sistemas de gestão empresarial", words:["sistema de gestão","sistema de gestao","gestão empresarial","gestao empresarial","erp","software de gestão","software de gestao"]},
+    {name:"Aplicativos", words:["aplicativo","aplicativos","app","aplicação móvel","aplicacao movel","android","ios"]},
+    {name:"Emails corporativos", words:["email corporativo","emails corporativos","e-mail corporativo","correio corporativo"]},
+    {name:"Acompanhamento Hospitalar na Namíbia", words:["acompanhamento hospitalar","hospital na namíbia","hospital na namibia","acompanhamento no hospital"]},
+    {name:"Compras na Namíbia", words:["compras na namíbia","compras na namibia","comprar na namíbia","comprar na namibia","assistência em compras","assistencia em compras"]},
+    {name:"Recebimento e envio de encomendas", words:["encomenda","encomendas","enviar pacote","receber pacote","envio de encomenda","recebimento de encomenda","mandar encomenda","receber encomenda"]},
+    {name:"Tradução e interpretação", words:["tradução","traducao","interpretação","interpretacao","traduzir","intérprete","interprete"]},
+    {name:"Marketing digital", words:["marketing digital","redes sociais","publicidade digital"]},
+    {name:"Design gráfico", words:["design gráfico","design grafico","cartaz","flyer","logotipo","logo"]},
+    {name:"Consultoria educacional", words:["consultoria educacional","orientação educacional","orientacao educacional"]},
+    {name:"Curso de Inglês", words:["curso de inglês","curso de ingles","inglês britânico","ingles britanico"]},
+    {name:"Curso de Música", words:["curso de música","curso de musica","curso de piano","solfejo"]},
+    {name:"Armazenamento Musical DNAC", words:["armazenamento musical","dnac","partituras","arquivo musical"]},
+    {name:"Composição e arranjos", words:["composição","composicao","arranjos","arranjo musical"]}
+  ];
+
+  for (const rule of rules) {
+    if (rule.words.some(word => sample.includes(word))) return rule.name;
+  }
+  return "";
+}
+
+// ============================================================
 // CHAT
 // ============================================================
 
@@ -1590,6 +1634,15 @@ async function handleChat(request, env) {
       message
     );
 
+  const serviceDetected =
+    detectServiceTopic(
+      message,
+      history,
+      context
+    );
+
+  context.servico = serviceDetected || context.servico || "";
+
   // ----------------------------------------------------------
   // SE AINDA NÃO TEM NOME:
   // NÃO DEIXAR O MODELO COMEÇAR O ATENDIMENTO
@@ -1608,7 +1661,8 @@ async function handleChat(request, env) {
       language,
       identified: false,
       needsFullName: true,
-      needsPhone: !clientPhone
+      needsPhone: !clientPhone,
+      serviceDetected: serviceDetected || null
     });
   }
 
@@ -1629,7 +1683,8 @@ async function handleChat(request, env) {
       formalName: null,
       identified: false,
       needsFullName: true,
-      needsPhone: !clientPhone
+      needsPhone: !clientPhone,
+      serviceDetected: serviceDetected || null
     });
   }
 
@@ -1650,7 +1705,8 @@ async function handleChat(request, env) {
       language,
       formalName: null,
       identified: true,
-      needsPhone: true
+      needsPhone: true,
+      serviceDetected: serviceDetected || null
     });
   }
 
@@ -1769,6 +1825,23 @@ async function handleChat(request, env) {
   }
 
   // ----------------------------------------------------------
+  // AGENDAMENTO DO SERVIÇO
+  // ----------------------------------------------------------
+
+  const alreadyAskedSchedule =
+    /\b(agendar|agendamento|marcar|marcação|marcacao|appointment|schedule|book)\b/i.test(reply);
+
+  if (
+    serviceDetected &&
+    history.length >= 2 &&
+    !alreadyAskedSchedule
+  ) {
+    reply += language === "en"
+      ? "\\n\\nWould you like to schedule this service?"
+      : "\\n\\nDeseja agendar este serviço?";
+  }
+
+  // ----------------------------------------------------------
   // RESPOSTA
   // ----------------------------------------------------------
 
@@ -1780,7 +1853,9 @@ async function handleChat(request, env) {
     clientTitle: effectiveTitle,
     formalName,
     language,
-    identified: true
+    identified: true,
+    serviceDetected: serviceDetected || null,
+    scheduleOffered: Boolean(serviceDetected)
   });
 }
 
@@ -1870,6 +1945,11 @@ async function handleSaveConversation(request, env) {
     status: body?.status === "human" ? "human" : "bot",
     updatedAt: new Date().toISOString(),
     history,
+    serviceForm:
+      body?.service_form &&
+      typeof body.service_form === "object"
+        ? body.service_form
+        : (existing?.serviceForm || null),
     pushNotifiedAt: existing?.pushNotifiedAt || null
   };
 
