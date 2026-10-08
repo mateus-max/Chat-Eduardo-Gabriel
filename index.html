@@ -1983,5 +1983,38 @@ quick([]);
   }
 }
 </style>
+<style id="mobile-input-fix-v6">
+/* V6 — o campo de texto nunca fica encoberto pelo input de ficheiros */
+#fileInput,
+input#fileInput[hidden]{
+  display:none !important;
+  width:0 !important;
+  height:0 !important;
+  flex:0 0 0 !important;
+  position:absolute !important;
+  pointer-events:none !important;
+}
+@media(max-width:650px){
+  .composer-tools{
+    display:grid !important;
+    grid-template-columns:42px 42px minmax(0,1fr) 42px 42px !important;
+    width:100% !important;
+    gap:7px !important;
+  }
+  .composer-tools #emojiBtn{grid-column:1}
+  .composer-tools #attachBtn{grid-column:2}
+  .composer-tools #input{
+    grid-column:3;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:none !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+    white-space:nowrap !important;
+  }
+  .composer-tools #voiceBtn{grid-column:4}
+  .composer-tools #send{grid-column:5}
+}
+</style>
 </body>
   </html>
