@@ -857,6 +857,19 @@ function nomeCliente(){
 
 }
 
+function detectarIdiomaInicial(text){
+  const value=String(text||"").toLowerCase();
+  const pt=["olá","ola","oi","bom dia","boa tarde","boa noite","preciso","gostaria","quero","tenho","sou","me chamo","meu nome","senhor","senhora","preço","preco","quanto","serviço","servico","ajuda","número","numero","por favor","obrigado","obrigada","pode"];
+  const en=["hello","hi","good morning","good afternoon","good evening","i need","i would like","i want","i have","i am","i'm","my name","mr","mrs","ms","sir","madam","price","how much","service","help","number","please","thank you","can you","could you","where","what","when"];
+  let p=0,e=0;
+  pt.forEach(x=>{if(value.includes(x))p++});
+  en.forEach(x=>{if(value.includes(x))e++});
+  if(e>p)return "en";
+  if(p>e)return "pt";
+  if(/\b(the|this|that|with|for|from|about|please|can)\b/i.test(value))return "en";
+  return "pt";
+}
+
 
 function tratamentoCliente(){
 
@@ -1359,6 +1372,8 @@ async function processVoiceMessage(blob){
     typingRow.remove();
     add(data.reply || "Desculpe, não consegui preparar a resposta agora.","bot");
     if(data.clientName && !ctx.nome) ctx.nome=data.clientName;
+    if(data.clientPhone) ctx.telefone=data.clientPhone;
+    if(data.language) ctx.idioma=data.language;
 
     history.push({text:transcript,type:"user"});
     history.push({text:data.reply || "",type:"bot"});
@@ -1389,6 +1404,9 @@ async function send(){
   if(!text)
     return;
 
+  if(!ctx.idioma){
+    ctx.idioma=detectarIdiomaInicial(text);
+  }
 
   if(!ctx.nome){
 
@@ -1429,21 +1447,6 @@ async function send(){
   input.value = "";
 
   quick([]);
-
-  // Identificação obrigatória: não chamar a IA enquanto o nome
-  // ainda não foi informado.
-  if(!ctx.nome){
-    const normalized = text.replace(/\s+/g," ").trim();
-    const greetingOnly = /^(olá|ola|oi|olá tudo bem|ola tudo bem|oi tudo bem|bom dia|boa tarde|boa noite|hello|hi|hey|how are you|how are you doing)[!?.,\s]*$/i.test(normalized);
-
-    say(
-      greetingOnly
-        ? "Tudo bem, obrigado pela sua mensagem. Antes de continuarmos, por favor, diga-me o seu nome."
-        : "Antes de continuarmos, por favor, diga-me o seu nome.",
-      180
-    );
-    return;
-  }
 
   const payload = {
 
@@ -1543,6 +1546,7 @@ async function send(){
 
     if(data.clientName) ctx.nome=data.clientName;
     if(data.clientPhone) ctx.telefone=data.clientPhone;
+    if(data.language) ctx.idioma=data.language;
 
     if(data.quick_replies)
       quick(
@@ -1659,7 +1663,9 @@ document.getElementById("input")
    INICIAR
    ========================================================= */
 
-showIntro();
+// O chat permanece silencioso ao abrir.
+// A primeira mensagem parte sempre do cliente.
+quick([]);
 
 </script>
 
