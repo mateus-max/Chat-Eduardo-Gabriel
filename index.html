@@ -1560,6 +1560,14 @@ async function send(){
 
   quick([]);
 
+  const scheduleService=inferServiceForForm(text);
+  const lastBotText=[...history].reverse().find(function(item){return item.type==="bot"})?.text||"";
+  if(isScheduleConfirmation(text) && scheduleService && /agendar|agendamento|marcar|marcação|marcacao|schedule|appointment|book/i.test(lastBotText)){
+    openServiceForm(scheduleService);
+    queueConversationSave();
+    return;
+  }
+
   if(isCallRequest(text)){
     const isEnglish = /\b(call|phone|ring|speak to|talk to)\b/i.test(text);
     say(
@@ -1701,8 +1709,9 @@ async function send(){
     if(data.clientName) ctx.nome=data.clientName;
     if(data.clientPhone) ctx.telefone=data.clientPhone;
     if(data.language) ctx.idioma=data.language;
+    if(data.serviceDetected) ctx.servico=data.serviceDetected;
 
-    // Persistir imediatamente o nome completo e o WhatsApp assim que o servidor os confirmar.
+    // Persistir imediatamente identidade e serviço identificado.
     queueConversationSave();
 
     if(data.quick_replies)
