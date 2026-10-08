@@ -447,7 +447,10 @@ function extractPhoneFromText(text, previousHistory = []) {
   return "";
 }
 function stripContactTail(value) {
-  return String(value || "").replace(/\s*(?:,|;|\s+e\s+)?\s*(?:o\s+meu|meu|minha|o)\s*(?:n[uú]mero|telefone|whatsapp|contacto|contato)\s*(?:é|e|:|-)?\s*.*$/i, "").trim();
+  return String(value || "").replace(
+    /\s*(?:,|;|\s+e\s+|\s+and\s+)?\s*(?:(?:o\s+meu|meu|minha|o)\s*(?:n[uú]mero|telefone|whatsapp|contacto|contato)|(?:my|the)\s+(?:number|phone|whatsapp|contact|mobile))\s*(?:é|e|is|:|-)?\s*.*$/i,
+    ""
+  ).trim();
 }
 
 function cleanName(name) {
