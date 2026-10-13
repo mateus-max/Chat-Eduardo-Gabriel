@@ -2122,42 +2122,17 @@ async function handleAdminConversation(request, env, sessionId) {
 // WORKER
 // ============================================================
 
-async function fetchHandler(request) {
-    // Service Worker format: Cloudflare exposes bindings on globalThis.
-    // Keep a process.env fallback for compatible runtimes, without ever
-    // placing secrets in the source code.
-    const readBinding = (name) => {
-      try {
-        const direct = globalThis[name];
-        if (typeof direct === "string" && direct.trim()) {
-          return direct.trim();
-        }
-        if (direct && typeof direct !== "string") {
-          return direct;
-        }
-      } catch (_) {}
-
-      try {
-        if (
-          typeof process !== "undefined" &&
-          process.env &&
-          typeof process.env[name] === "string" &&
-          process.env[name].trim()
-        ) {
-          return process.env[name].trim();
-        }
-      } catch (_) {}
-
-      return undefined;
-    };
-
+async function fetchHandler(request, bindings = {}) {
+    // Cloudflare injeta os secrets e bindings no segundo argumento do fetch.
+    // Não estão disponíveis em globalThis; ler dali fazia a IA parecer online,
+    // mas deixava GROQ_API_KEY, KV e ASSETS como undefined.
     const env = {
-      GROQ_API_KEY: readBinding("GROQ_API_KEY"),
-      ADMIN_PANEL_KEY: readBinding("ADMIN_PANEL_KEY"),
-      CONVERSATIONS: readBinding("CONVERSATIONS"),
-      VAPID_PUBLIC_KEY: readBinding("VAPID_PUBLIC_KEY"),
-      VAPID_PRIVATE_KEY: readBinding("VAPID_PRIVATE_KEY"),
-      ASSETS: readBinding("ASSETS")
+      GROQ_API_KEY: bindings.GROQ_API_KEY,
+      ADMIN_PANEL_KEY: bindings.ADMIN_PANEL_KEY,
+      CONVERSATIONS: bindings.CONVERSATIONS,
+      VAPID_PUBLIC_KEY: bindings.VAPID_PUBLIC_KEY,
+      VAPID_PRIVATE_KEY: bindings.VAPID_PRIVATE_KEY,
+      ASSETS: bindings.ASSETS
     };
     const url =
       new URL(request.url);
@@ -2271,6 +2246,8 @@ async function fetchHandler(request) {
     );
   }
 
-addEventListener("fetch", (event) => {
-  event.respondWith(fetchHandler(event.request));
-});
+export default {
+  fetch(request, env) {
+    return fetchHandler(request, env);
+  }
+};
